@@ -27,18 +27,12 @@ export default function VaultMediaView({ file, isFullscreen, isSyncing, onSync }
   const isPptOrDoc = name.toLowerCase().endsWith('.pptx') || name.toLowerCase().endsWith('.docx');
   const isDocument = resource_type === 'raw' || isPptOrDoc;
 
-  // Automatically trigger sync for local documents
-  useEffect(() => {
-    if (isDocument && !secure_url && onSync && !isSyncing) {
-        onSync();
-    }
-  }, [file, secure_url, isDocument, onSync, isSyncing]);
-
   return (
     <Box 
       sx={{ 
         width: '100%', 
         height: '100%', 
+        flex: 1,
         overflow: isDocument ? 'auto' : 'hidden',
         display: 'flex', 
         flexDirection: 'column'
@@ -51,8 +45,8 @@ export default function VaultMediaView({ file, isFullscreen, isSyncing, onSync }
         p: isFullscreen ? 0 : (isDocument ? 0 : 2),
         pt: isFullscreen ? 10 : (isDocument ? 0 : 2),
         width: '100%',
-        height: isDocument ? 'auto' : '100%',
-        minHeight: isDocument ? '100%' : 'none',
+        height: '100%',
+        minHeight: 0,
         overflow: 'visible'
       }}>
         <Box sx={{ 
