@@ -181,6 +181,7 @@ export default function VaultSidebar({
           const isSelected = selectedFile?.public_id === f.public_id;
           const isImage = f.resource_type === 'image';
           const isVideo = f.resource_type === 'video';
+          const isPptx = (f.displayName || '').toLowerCase().endsWith('.pptx');
           
           return (
             <ListItemButton 
@@ -210,6 +211,7 @@ export default function VaultSidebar({
               <ListItemIcon sx={{ minWidth: 32 }}>
                 {isImage ? <Image size={16} color={isSelected ? "#60a5fa" : "#94a3b8"} /> : 
                  isVideo ? <Video size={16} color={isSelected ? "#f87171" : "#94a3b8"} /> : 
+                 isPptx ? <FileText size={16} color="#ef4444" style={{ filter: 'drop-shadow(0 0 5px rgba(239,68,68,0.3))' }} /> :
                  <FileText size={16} color="#94a3b8" />}
               </ListItemIcon>
               <ListItemText 
