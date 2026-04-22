@@ -69,9 +69,22 @@ export async function GET(request) {
         console.log(`[Vault API] ERROR: Global resources fetch error: ${resourceErr.message}`);
     }
 
+    // Fetch Subfolders
+    let folders = [];
+    try {
+        console.log(`[Vault API] DEBUG: Fetching subfolders for "${path}"...`);
+        const subfoldersRes = await cloudinary.api.sub_folders(path);
+        folders = subfoldersRes.folders.map(f => ({
+            name: f.name,
+            path: f.path
+        }));
+    } catch (folderErr) {
+        console.log(`[Vault API] INFO: No subfolders found or error: ${folderErr.message}`);
+    }
+
     return NextResponse.json({
       path,
-      folders: [], // No folders needed, flat view
+      folders: folders.sort((a, b) => a.name.localeCompare(b.name)),
       files: files.sort((a, b) => a.name.localeCompare(b.name))
     });
 

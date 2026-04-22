@@ -10,7 +10,7 @@ import 'react-pdf/dist/esm/Page/TextLayer.css';
 // Configure the worker for PDF.js - Next.js needs this to process the PDFs in a web worker
 pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.js`;
 
-export default function PdfViewer({ url, onFallback }) {
+export default function PdfViewer({ url, onFallback, isFullscreen }) {
   const [numPages, setNumPages] = useState(null);
   const [pageNumber, setPageNumber] = useState(1);
   const [scale, setScale] = useState(1.0);
@@ -38,43 +38,43 @@ export default function PdfViewer({ url, onFallback }) {
   const goToNextPage = () => setPageNumber((prev) => Math.min(prev + 1, numPages));
 
   return (
-    <Box 
+    <Box
       onMouseMove={handleMouseMove}
       onClick={handleMouseMove}
-      sx={{ 
-        display: 'flex', 
-        flexDirection: 'column', 
-        alignItems: 'center', 
-        width: '100%', 
+      sx={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        width: '100%',
         height: '100%',
         backgroundColor: '#0f172a',
         position: 'relative'
       }}
     >
       {/* TOOLBAR */}
-      <Box sx={{ 
+      <Box sx={{
         position: 'absolute',
-        bottom: 30,
-        zIndex: 50,
-        display: 'flex', 
-        alignItems: 'center', 
-        gap: 2, 
-        p: 1.5, 
-        px: 3,
+        bottom: isFullscreen ? 50 : 30,
+        zIndex: 100,
+        display: 'flex',
+        alignItems: 'center',
+        gap: 2,
+        p: isFullscreen ? 2.5 : 1.5,
+        px: isFullscreen ? 5 : 3,
         borderRadius: 999,
-        backgroundColor: 'rgba(15, 23, 42, 0.8)', 
-        backdropFilter: 'blur(10px)',
-        border: '1px solid rgba(255,255,255,0.1)',
-        boxShadow: '0 20px 40px rgba(0,0,0,0.5)',
+        backgroundColor: 'rgba(15, 23, 42, 0.9)',
+        backdropFilter: 'blur(15px)',
+        border: '1px solid rgba(255,255,255,0.2)',
+        boxShadow: '0 30px 60px rgba(0,0,0,0.7)',
         justifyContent: 'center',
         opacity: showControls ? 1 : 0,
         pointerEvents: showControls ? 'auto' : 'none',
-        transition: 'opacity 0.3s'
+        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
       }}>
         <IconButton size="small" onClick={goToPrevPage} disabled={pageNumber <= 1} sx={{ color: 'white' }}>
           <ChevronLeft />
         </IconButton>
-        
+
         <Typography variant="body2" sx={{ color: 'white', minWidth: '100px', textAlign: 'center', fontWeight: 800 }}>
           Page {pageNumber} of {numPages || '--'}
         </Typography>
@@ -96,35 +96,45 @@ export default function PdfViewer({ url, onFallback }) {
         </IconButton>
       </Box>
 
-      {/* DOCUMENT VIEWER */}
-      <Box sx={{ 
-        flex: 1, 
-        width: '100%', 
-        overflow: 'auto', 
-        display: 'flex', 
-        justifyContent: 'center',
-        p: 2
+      <Box sx={{
+        flex: 1,
+        width: '100%',
+        overflow: 'auto',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center'
       }}>
-        <Document
-          file={url}
-          onLoadSuccess={onDocumentLoadSuccess}
-          onLoadError={onDocumentLoadError}
-          loading={
-            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', mt: 10 }}>
-              <CircularProgress size={40} sx={{ color: '#6366f1' }} />
-              <Typography sx={{ color: 'text.secondary', mt: 2 }}>Loading PDF document...</Typography>
-            </Box>
-          }
-        >
-          <Box sx={{ boxShadow: '0 20px 50px rgba(0,0,0,0.5)', backgroundColor: 'white' }}>
-            <Page 
-              pageNumber={pageNumber} 
-              scale={scale} 
-              renderTextLayer={true}
-              renderAnnotationLayer={true}
-            />
+        <Box sx={{
+          minHeight: '100%',
+          width: '100%',
+          display: 'flex',
+          flexDirection: 'column',
+          p: isFullscreen ? 0 : 2,
+          pt: isFullscreen ? 12 : 2
+        }}>
+          <Box sx={{ margin: 'auto' }}>
+            <Document
+              file={url}
+              onLoadSuccess={onDocumentLoadSuccess}
+              onLoadError={onDocumentLoadError}
+              loading={
+                <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', mt: 10 }}>
+                  <CircularProgress size={40} sx={{ color: '#6366f1' }} />
+                  <Typography sx={{ color: 'text.secondary', mt: 2 }}>Loading PDF document...</Typography>
+                </Box>
+              }
+            >
+              <Box sx={{ boxShadow: '0 20px 50px rgba(0,0,0,0.5)', backgroundColor: 'white' }}>
+                <Page
+                  pageNumber={pageNumber}
+                  scale={scale}
+                  renderTextLayer={true}
+                  renderAnnotationLayer={true}
+                />
+              </Box>
+            </Document>
           </Box>
-        </Document>
+        </Box>
       </Box>
     </Box>
   );
