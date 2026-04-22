@@ -82,7 +82,7 @@ export default function VaultMediaView({ file, isFullscreen }) {
 
           {resource_type === 'raw' && (
             <Box sx={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column' }}>
-              {name.toLowerCase().endsWith('.pptx') ? (
+              {name.toLowerCase().endsWith('.pptx') || name.toLowerCase().endsWith('.docx') ? (
                 <OfficePptViewer url={secure_url} isVisible={!!file} />
               ) : !pdfError ? (
                 <PdfViewer 
