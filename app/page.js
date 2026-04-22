@@ -399,39 +399,43 @@ export default function Home() {
           zIndex: (theme) => theme.zIndex.drawer + 1,
         }}
       >
-        <Toolbar sx={{ gap: 2 }}>
-          <IconButton onClick={() => setIsSidebarOpen(o => !o)} sx={{ color: 'white', mr: 1 }}>
+        <Toolbar sx={{ gap: { xs: 1, sm: 2 }, px: { xs: 1, sm: 2 } }}>
+          <IconButton onClick={() => setIsSidebarOpen(o => !o)} sx={{ color: 'white', mr: { xs: 0, sm: 1 } }}>
             <Menu size={24} />
           </IconButton>
           <Box
             sx={{
-              width: 38,
-              height: 38,
+              width: { xs: 32, sm: 38 },
+              height: { xs: 32, sm: 38 },
               display: 'grid',
               placeItems: 'center',
               borderRadius: '10px',
               background: 'linear-gradient(135deg, #3b82f6, #8b5cf6)',
               boxShadow: '0 0 20px rgba(59,130,246,0.5)',
+              flexShrink: 0
             }}
           >
             <ShieldCheck size={20} color="white" />
           </Box>
-          <Typography variant="h6" sx={{ letterSpacing: -1, fontSize: '1.2rem', fontWeight: 900 }}>
+          <Typography variant="h6" sx={{ letterSpacing: -1, fontSize: '1.2rem', fontWeight: 900, display: { xs: 'none', md: 'block' } }}>
             BCH VAULT
           </Typography>
 
           <Tabs
             value={viewMode}
             onChange={(_, v) => setViewMode(v)}
+            variant="scrollable"
+            scrollButtons={false}
             sx={{
-              ml: 4,
+              ml: { xs: 1, md: 4 },
+              minHeight: 'auto',
               '& .MuiTabs-indicator': { backgroundColor: '#3b82f6', height: 3, borderRadius: '3px 3px 0 0' },
-              '& .MuiTab-root': { color: '#64748b', fontWeight: 800, textTransform: 'none', minWidth: 100, fontSize: '0.9rem' },
+              '& .MuiTab-root': { color: '#64748b', fontWeight: 800, textTransform: 'none', minWidth: { xs: 70, sm: 100 }, fontSize: { xs: '0.8rem', sm: '0.9rem' }, py: 1.5, px: { xs: 1, sm: 2 } },
               '& .Mui-selected': { color: '#3b82f6 !important' }
             }}
           >
-            <Tab icon={<Cloud size={18} />} iconPosition="start" label="Cloud Vault" value="cloud" />
-            <Tab icon={<Smartphone size={18} />} iconPosition="start" label="Local Workspace" value="local" />
+            <Tab icon={<Cloud size={18} />} iconPosition="start" label="Cloud" value="cloud" />
+            <Tab icon={<Smartphone size={18} />} iconPosition="start" label="Local" value="local" />
           </Tabs>
 
           <Box sx={{ flex: 1 }} />
@@ -439,18 +443,12 @@ export default function Home() {
           {isCloud && !isVaultAuth && (
             <Button
               variant="contained"
-              startIcon={<Lock size={16} />}
               onClick={() => setShowAuthDialog(true)}
-                sx={{
-                  borderRadius: 999,
-                  bgcolor: '#334155',
-                  fontSize: '0.75rem',     // smaller text
-                  padding: '4px 10px',     // reduce height & width
-                  minHeight: '30px',       // control button height
-                  '&:hover': { bgcolor: '#475569' }
-                }}
+              size="small"
+              sx={{ borderRadius: 999, bgcolor: '#334155', '&:hover': { bgcolor: '#475569' }, minWidth: 0, p: { xs: 1, sm: '4px 16px' } }}
             >
-              Upload
+              <Lock size={16} />
+              <Typography component="span" sx={{ ml: 1, display: { xs: 'none', sm: 'inline' }, fontSize: '0.875rem', fontWeight: 600 }}>Unlock Vault</Typography>
             </Button>
           )}
 
@@ -458,20 +456,22 @@ export default function Home() {
             <Stack direction="row" spacing={1}>
               <Button
                 variant="outlined"
-                startIcon={<Folder size={16} />}
                 onClick={() => setShowFolderDialog(true)}
-                sx={{ borderRadius: 999, color: 'white', borderColor: 'rgba(255,255,255,0.2)' }}
+                size="small"
+                sx={{ borderRadius: 999, color: 'white', borderColor: 'rgba(255,255,255,0.2)', minWidth: 0, p: { xs: 1, sm: '4px 16px' } }}
               >
-                New Folder
+                <Folder size={16} />
+                <Typography component="span" sx={{ ml: 1, display: { xs: 'none', sm: 'inline' }, fontSize: '0.875rem', fontWeight: 600 }}>New Folder</Typography>
               </Button>
               <Button
                 variant="contained"
-                startIcon={isUploading ? <CircularProgress size={16} color="inherit" /> : <Plus size={16} />}
                 onClick={() => fileInputRef.current?.click()}
                 disabled={isUploading}
-                sx={{ borderRadius: 999, bgcolor: '#3b82f6', minWidth: 140 }}
+                size="small"
+                sx={{ borderRadius: 999, bgcolor: '#3b82f6', minWidth: { xs: 0, sm: 140 }, p: { xs: 1, sm: '4px 16px' } }}
               >
-                {isUploading ? 'Uploading...' : 'Upload Asset'}
+                {isUploading ? <CircularProgress size={16} color="inherit" /> : <Plus size={16} />}
+                <Typography component="span" sx={{ ml: isUploading ? 0 : 1, display: { xs: 'none', sm: 'inline' }, fontSize: '0.875rem', fontWeight: 600 }}>{isUploading ? 'Uploading...' : 'Upload Asset'}</Typography>
               </Button>
             </Stack>
           )}
@@ -481,10 +481,11 @@ export default function Home() {
               variant="contained"
               onClick={() => fileInputRef.current?.click()}
               disabled={isUploading}
-              startIcon={isUploading ? <CircularProgress size={16} color="inherit" /> : <Plus size={16} />}
-              sx={{ borderRadius: 999, bgcolor: '#3b82f6', minWidth: 160 }}
+              size="small"
+              sx={{ borderRadius: 999, bgcolor: '#3b82f6', minWidth: { xs: 0, sm: 160 }, p: { xs: 1, sm: '4px 16px' } }}
             >
-              {isUploading ? 'Processing...' : 'Add Presentation'}
+              {isUploading ? <CircularProgress size={16} color="inherit" /> : <Plus size={16} />}
+              <Typography component="span" sx={{ ml: isUploading ? 0 : 1, display: { xs: 'none', sm: 'inline' }, fontSize: '0.875rem', fontWeight: 600 }}>{isUploading ? 'Processing...' : 'Add Presentation'}</Typography>
             </Button>
           )}
         </Toolbar>
@@ -494,13 +495,16 @@ export default function Home() {
       <Box
         component="aside"
         sx={{
-          width: isSidebarOpen ? 340 : 0,
+          width: isSidebarOpen ? { xs: '100%', sm: 340 } : 0,
           opacity: isSidebarOpen ? 1 : 0,
           flexShrink: 0,
+          position: { xs: 'absolute', sm: 'relative' },
+          zIndex: { xs: 10, sm: 1 },
+          height: '100%',
           borderRight: isSidebarOpen ? '1px solid rgba(255,255,255,0.06)' : 'none',
           background: 'linear-gradient(180deg, rgba(15, 23, 42, 0.4) 0%, rgba(2, 6, 23, 0.6) 100%)',
           backdropFilter: 'blur(30px)',
-          pt: '64px',
+          pt: { xs: '56px', sm: '64px' },
           display: 'flex',
           flexDirection: 'column',
           transition: 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)',
@@ -588,20 +592,20 @@ export default function Home() {
       </Box>
 
       {/* Main Area */}
-      <Box component="main" sx={{ flex: 1, pt: '64px', minWidth: 0 }}>
-        <Box sx={{ height: '100%', p: 3, display: 'flex', flexDirection: 'column' }}>
-          <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 2 }}>
-            <Typography variant="body2" sx={{ color: '#64748b', fontWeight: 600 }}>
+      <Box component="main" sx={{ flex: 1, pt: { xs: '56px', sm: '64px' }, minWidth: 0 }}>
+        <Box sx={{ height: '100%', p: { xs: 1.5, sm: 3 }, display: 'flex', flexDirection: 'column' }}>
+          <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: { xs: 1, sm: 2 } }}>
+            <Typography variant="body2" sx={{ color: '#64748b', fontWeight: 600, noWrap: true, flexShrink: 1 }}>
               {isCloud ? `Vault / ${vaultPath.split('/').slice(1).join(' / ')}` : 'Local Workspace'}
             </Typography>
             {isCloud && vaultPath !== ROOT_FOLDER && (
               <Button
                 size="small"
                 onClick={navigateBack}
-                startIcon={<ChevronLeft size={14} />}
-                sx={{ ml: 2, color: '#3b82f6', textTransform: 'none', fontWeight: 800 }}
+                sx={{ ml: 2, color: '#3b82f6', textTransform: 'none', fontWeight: 800, minWidth: 'auto', p: { xs: '4px 8px', sm: '4px 16px' } }}
               >
-                Back to Parent
+                <ChevronLeft size={16} />
+                <Typography component="span" sx={{ ml: 0.5, display: { xs: 'none', sm: 'inline' }, fontSize: '0.875rem', fontWeight: 800 }}>Back to Parent</Typography>
               </Button>
             )}
           </Stack>
@@ -625,12 +629,12 @@ export default function Home() {
             <Fade in={showControls}>
               <Box sx={{
                 position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10,
-                p: 2, display: 'flex', alignItems: 'center',
+                p: { xs: 1, sm: 2 }, display: 'flex', alignItems: 'center',
                 background: 'linear-gradient(to bottom, rgba(2,6,23,0.9), transparent)',
                 pointerEvents: showControls ? 'auto' : 'none'
               }}>
-                <Box sx={{ flex: 1, display: 'flex', alignItems: 'center', gap: 2 }}>
-                  <Typography variant="body2" sx={{ fontWeight: 800, textShadow: '0 2px 10px rgba(0,0,0,0.8)' }}>
+                <Box sx={{ flex: 1, display: 'flex', alignItems: 'center', gap: { xs: 1, sm: 2 }, minWidth: 0 }}>
+                  <Typography variant="body2" sx={{ fontWeight: 800, textShadow: '0 2px 10px rgba(0,0,0,0.8)', noWrap: true, overflow: 'hidden', textOverflow: 'ellipsis' }}>
                     {selectedFileName || 'Select an asset'}
                   </Typography>
                   {selectedFile?.secure_url && selectedFileName.toLowerCase().endsWith('.pptx') && (
@@ -640,10 +644,10 @@ export default function Home() {
                         backdropFilter: 'blur(10px)',
                         border: '1px solid rgba(59, 130, 246, 0.4)',
                         color: '#60a5fa',
-                        px: 1.5,
+                        px: { xs: 1, sm: 1.5 },
                         py: 0.25,
                         borderRadius: 2,
-                        display: 'flex',
+                        display: { xs: 'none', sm: 'flex' },
                         alignItems: 'center',
                         gap: 1
                       }}
