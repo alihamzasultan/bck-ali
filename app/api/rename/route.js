@@ -24,7 +24,7 @@ export async function PUT(request) {
     }
 
     const new_id = `${folder}/${finalName}`;
-    const res = await cloudinary.uploader.rename(old_id, new_id);
+    const res = await cloudinary.uploader.rename(old_id, new_id, { resource_type: resource_type || 'image' });
     
     return NextResponse.json(res);
   } catch (error) {
