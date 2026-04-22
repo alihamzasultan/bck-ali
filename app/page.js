@@ -699,9 +699,9 @@ export default function Home() {
               </Box>
             </Fade>
 
-            <Box sx={{ flex: 1, position: 'relative', overflow: 'hidden', p: 0 }}>
+            <Box sx={{ flex: 1, position: 'relative', overflow: 'hidden', p: 0, display: 'flex', flexDirection: 'column' }}>
               {!selectedFile ? (
-                <Stack alignItems="center" justifyContent="center" sx={{ height: '100%', opacity: 0.3 }}>
+                <Stack alignItems="center" justifyContent="center" sx={{ height: '100%', flex: 1, opacity: 0.3 }}>
                   <Box sx={{ p: 4, borderRadius: 4, border: '2px dashed rgba(255,255,255,0.1)', textAlign: 'center' }}>
                     <Cloud size={48} />
                     <Typography variant="h6" sx={{ mt: 2, fontWeight: 800 }}>Empty Stage</Typography>
@@ -710,11 +710,11 @@ export default function Home() {
                 </Stack>
               ) : (
                 error ? (
-                  <Stack alignItems="center" justifyContent="center" sx={{ height: '100%' }}>
+                  <Stack alignItems="center" justifyContent="center" sx={{ height: '100%', flex: 1 }}>
                     <Alert severity="error" variant="outlined" sx={{ borderRadius: 3 }}>{error}</Alert>
                   </Stack>
                 ) : isRasterizing || isLoading ? (
-                  <Stack alignItems="center" justifyContent="center" sx={{ height: '100%', spacing: 2 }}>
+                  <Stack alignItems="center" justifyContent="center" sx={{ height: '100%', flex: 1, spacing: 2 }}>
                     <CircularProgress />
                     <Typography sx={{ mt: 2, fontWeight: 800 }}>
                       {isRasterizing ? `Rendering Slide ${rasterProgress.done + 1}...` : 'Loading Asset...'}
