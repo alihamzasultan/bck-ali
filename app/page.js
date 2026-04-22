@@ -47,7 +47,8 @@ import {
   ShieldCheck,
   Menu,
   Maximize,
-  Minimize
+  Minimize,
+  FileText
 } from 'lucide-react';
 
 const ROOT_FOLDER = "BCH-FILES";
@@ -97,6 +98,7 @@ export default function Home() {
   const hideControlsTimer = useRef(null);
   const stageRef = useRef(null);
   const fileInputRef = useRef(null);
+  const [localSyncCache, setLocalSyncCache] = useState({}); // { fileName: { secure_url, resource_type, public_id } }
 
   // --- Auto-Hide Controls Logic ---
   const handleStageMouseMove = () => {
@@ -336,6 +338,49 @@ export default function Home() {
     }
   };
 
+  const [isSyncing, setIsSyncing] = useState(false);
+
+  const handleLocalSync = async (file) => {
+    if (!isVaultAuth) {
+        setShowAuthDialog(true);
+        return;
+    }
+    setIsSyncing(true);
+    setError(null);
+    try {
+        let fileObj = file;
+        if (file.handle) {
+            fileObj = await file.handle.getFile();
+        }
+        
+        // Upload to the main vault folder
+        const res = await VaultService.uploadFile(ROOT_FOLDER, fileObj);
+        
+        const syncData = {
+            secure_url: res.secure_url,
+            resource_type: res.resource_type,
+            public_id: res.public_id
+        };
+
+        // Update cache
+        setLocalSyncCache(prev => ({
+            ...prev,
+            [file.name]: syncData
+        }));
+
+        // Update selection with the new secure path
+        setSelectedFile({
+            ...file,
+            ...syncData
+        });
+    } catch (err) {
+        console.error("Sync error:", err);
+        setError("Failed to synchronize with Microsoft Engine. Please ensure the Vault is unlocked.");
+    } finally {
+        setIsSyncing(false);
+    }
+  };
+
   const handleSidebarUpload = (path) => {
     setUploadTargetPath(path);
     fileInputRef.current?.click();
@@ -483,17 +528,51 @@ export default function Home() {
                     </Box>
                 ) : (
                     <List sx={{ mt: 1 }}>
-                        {localFiles.map(file => (
-                             <ListItemButton
-                                key={file.name}
-                                selected={selectedFile?.name === file.name}
-                                onClick={() => setSelectedFile(file)}
-                                sx={{ borderRadius: 2, mb: 0.5 }}
-                            >
-                                <ListItemIcon sx={{ minWidth: 36 }}><Presentation size={18} /></ListItemIcon>
-                                <ListItemText primary={file.name} primaryTypographyProps={{ noWrap: true, fontWeight: 700, fontSize: 13 }} />
-                            </ListItemButton>
-                        ))}
+                        {localFiles.map(file => {
+                            const isPptx = file.name.toLowerCase().endsWith('.pptx');
+                            const isDocx = file.name.toLowerCase().endsWith('.docx');
+                            const isSelected = selectedFile?.name === file.name;
+                            
+                            return (
+                                <ListItemButton
+                                    key={file.name}
+                                    selected={isSelected}
+                                    onClick={() => {
+                                        // Check cache before selecting
+                                        const cached = localSyncCache[file.name];
+                                        if (cached) {
+                                            setSelectedFile({ ...file, ...cached });
+                                        } else {
+                                            setSelectedFile(file);
+                                        }
+                                    }}
+                                    sx={{ 
+                                        borderRadius: 2, 
+                                        mb: 0.5,
+                                        '&.Mui-selected': { bgcolor: 'rgba(59,130,246,0.15)' }
+                                    }}
+                                >
+                                    <ListItemIcon sx={{ minWidth: 36 }}>
+                                        {isPptx ? (
+                                            <FileText size={18} color="#ef4444" style={{ filter: 'drop-shadow(0 0 5px rgba(239,68,68,0.3))' }} />
+                                        ) : isDocx ? (
+                                            <FileText size={18} color="#3b82f6" style={{ filter: 'drop-shadow(0 0 5px rgba(59,130,246,0.3))' }} />
+                                        ) : (
+                                            <FileText size={18} color="#94a3b8" />
+                                        )}
+                                    </ListItemIcon>
+                                    <ListItemText 
+                                        primary={file.name} 
+                                        primaryTypographyProps={{ 
+                                            noWrap: true, 
+                                            fontWeight: isSelected ? 800 : 600, 
+                                            fontSize: 13,
+                                            color: isSelected ? 'white' : 'rgba(255,255,255,0.7)'
+                                        }} 
+                                    />
+                                </ListItemButton>
+                            );
+                        })}
                     </List>
                 )}
             </Box>
@@ -630,55 +709,16 @@ export default function Home() {
                                     {isRasterizing ? `Rendering Slide ${rasterProgress.done + 1}...` : 'Loading Asset...'}
                                 </Typography>
                             </Stack>
-                        ) : isPptx && !selectedFile.secure_url ? (
-                            <Box sx={{ 
-                                height: '100%', 
-                                width: '100%', 
-                                overflow: 'auto',
-                                display: 'flex', 
-                                flexDirection: 'column',
-                                alignItems: 'center'
-                            }}>
-                                <Box sx={{ 
-                                    minHeight: '100%', 
-                                    width: '100%',
-                                    display: 'flex', 
-                                    flexDirection: 'column',
-                                    p: isFullscreen ? 0 : 2,
-                                    pt: isFullscreen ? 12 : 8 
-                                }}>
-                                    <Box sx={{ margin: 'auto' }}>
-                                    <Box
-                                        component="img"
-                                        src={currentSlideImageUrl}
-                                        sx={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', borderRadius: 2, boxShadow: '0 20px 60px rgba(0,0,0,0.6)' }}
-                                    />
-                                </Box>
-                            </Box>
-                        </Box>
                         ) : (
-                            <VaultMediaView file={selectedFile} isFullscreen={isFullscreen} />
+                            <VaultMediaView 
+                              file={selectedFile} 
+                              isFullscreen={isFullscreen}
+                              isSyncing={isSyncing}
+                              onSync={() => handleLocalSync(selectedFile)}
+                            />
                         )
                     )}
                 </Box>
-
-                {isPptx && selectedFile && !error && !selectedFile.secure_url && (
-                    <Fade in={showControls}>
-                        <Box sx={{ 
-                            position: 'absolute', bottom: isFullscreen ? 50 : 30, left: '50%', transform: 'translateX(-50%)', zIndex: 100,
-                            p: isFullscreen ? 2.5 : 1.5, px: isFullscreen ? 5 : 3, borderRadius: 999, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 3, 
-                            bgcolor: 'rgba(15, 23, 42, 0.9)', backdropFilter: 'blur(15px)', border: '1px solid rgba(255,255,255,0.2)',
-                            boxShadow: '0 30px 60px rgba(0,0,0,0.7)', pointerEvents: showControls ? 'auto' : 'none',
-                            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
-                        }}>
-                            <IconButton disabled={!canGoPrev} onClick={() => setCurrentSlide(s => s - 1)} sx={{ color: 'white', border: '1px solid rgba(255,255,255,0.1)' }}><ChevronLeft /></IconButton>
-                            <Typography sx={{ fontWeight: 800, minWidth: 120, textAlign: 'center', color: 'white' }}>
-                                Slide {currentSlide + 1} of {slideCount}
-                            </Typography>
-                            <IconButton disabled={!canGoNext} onClick={() => setCurrentSlide(s => s + 1)} sx={{ color: 'white', border: '1px solid rgba(255,255,255,0.1)' }}><ChevronRight /></IconButton>
-                        </Box>
-                    </Fade>
-                )}
             </Box>
         </Box>
       </Box>
