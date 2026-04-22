@@ -441,7 +441,14 @@ export default function Home() {
               variant="contained"
               startIcon={<Lock size={16} />}
               onClick={() => setShowAuthDialog(true)}
-              sx={{ borderRadius: 999, bgcolor: '#334155', '&:hover': { bgcolor: '#475569' } }}
+                sx={{
+                  borderRadius: 999,
+                  bgcolor: '#334155',
+                  fontSize: '0.75rem',     // smaller text
+                  padding: '4px 10px',     // reduce height & width
+                  minHeight: '30px',       // control button height
+                  '&:hover': { bgcolor: '#475569' }
+                }}
             >
               Upload
             </Button>
