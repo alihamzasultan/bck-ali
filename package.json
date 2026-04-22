@@ -1,0 +1,31 @@
+{
+  "name": "bch-vault-next",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "next": "14.2.3",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "@mui/material": "^5.15.18",
+    "@emotion/react": "^11.11.4",
+    "@emotion/styled": "^11.11.5",
+    "@mui/icons-material": "^5.15.18",
+    "lucide-react": "^0.378.0",
+    "cloudinary": "^2.2.0",
+    "idb-keyval": "^6.2.1",
+    "@kandiforge/pptx-renderer": "^1.2.0",
+    "framer-motion": "^11.2.6",
+    "dotenv": "^16.4.5",
+    "react-pdf": "^8.0.0"
+  },
+  "devDependencies": {
+    "eslint": "^8.0.0",
+    "eslint-config-next": "14.2.3"
+  }
+}
