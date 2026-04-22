@@ -34,16 +34,16 @@ import {
   Backdrop,
   Snackbar
 } from '@mui/material';
-import { 
-  ChevronLeft, 
-  ChevronRight, 
-  Presentation, 
-  Folder, 
-  Lock, 
-  X, 
-  Plus, 
-  Cloud, 
-  Smartphone, 
+import {
+  ChevronLeft,
+  ChevronRight,
+  Presentation,
+  Folder,
+  Lock,
+  X,
+  Plus,
+  Cloud,
+  Smartphone,
   ShieldCheck,
   Menu,
   Maximize,
@@ -56,12 +56,12 @@ const ROOT_FOLDER = "BCH-FILES";
 export default function Home() {
   // --- Core State ---
   const [viewMode, setViewMode] = useState('cloud'); // 'local' | 'cloud'
-  const { 
-    dirHandle, 
-    files: localFiles, 
-    connectFolder, 
-    saveFile, 
-    refreshFiles 
+  const {
+    dirHandle,
+    files: localFiles,
+    connectFolder,
+    saveFile,
+    refreshFiles
   } = useFileSystem();
 
   // --- Vault State ---
@@ -76,16 +76,16 @@ export default function Home() {
   const [authError, setAuthError] = useState('');
 
   // --- Selection & Viewer State ---
-  const [selectedFile, setSelectedFile] = useState(null); 
+  const [selectedFile, setSelectedFile] = useState(null);
   const [pptxData, setPptxData] = useState(null);
   const [slideImageUrls, setSlideImageUrls] = useState([]);
-  const [renderStrategy, setRenderStrategy] = useState('server'); 
+  const [renderStrategy, setRenderStrategy] = useState('server');
   const [isRasterizing, setIsRasterizing] = useState(false);
   const [rasterProgress, setRasterProgress] = useState({ done: 0, total: 0 });
   const [isLoading, setIsLoading] = useState(false);
   const [currentSlide, setCurrentSlide] = useState(0);
   const [error, setError] = useState(null);
-  
+
   // --- UI State ---
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -105,7 +105,7 @@ export default function Home() {
     setShowControls(true);
     if (hideControlsTimer.current) clearTimeout(hideControlsTimer.current);
     hideControlsTimer.current = setTimeout(() => {
-        setShowControls(false);
+      setShowControls(false);
     }, 2500);
   };
 
@@ -151,21 +151,21 @@ export default function Home() {
   // --- Vault Effects ---
   useEffect(() => {
     if (isCloud) {
-        fetchVault(vaultPath);
+      fetchVault(vaultPath);
     }
   }, [isCloud, vaultPath]);
 
   const fetchVault = async (path) => {
     setIsVaultLoading(true);
     try {
-        const data = await VaultService.getVault(path);
-        setVaultFolders(data.folders);
-        setVaultFiles(data.files);
-        setIsVaultLoading(false);
+      const data = await VaultService.getVault(path);
+      setVaultFolders(data.folders);
+      setVaultFiles(data.files);
+      setIsVaultLoading(false);
     } catch (err) {
-        console.error("Vault fetch error:", err);
-        setError("Failed to connect to BCH Vault.");
-        setIsVaultLoading(false);
+      console.error("Vault fetch error:", err);
+      setError("Failed to connect to BCH Vault.");
+      setIsVaultLoading(false);
     }
   };
 
@@ -192,18 +192,18 @@ export default function Home() {
       try {
         let buffer;
         if (selectedFile.handle) {
-            const fileHandle = await selectedFile.handle.getFile();
-            buffer = await fileHandle.arrayBuffer();
+          const fileHandle = await selectedFile.handle.getFile();
+          buffer = await fileHandle.arrayBuffer();
         } else if (selectedFile.secure_url) {
-            const resp = await fetch(selectedFile.secure_url);
-            buffer = await resp.arrayBuffer();
+          const resp = await fetch(selectedFile.secure_url);
+          buffer = await resp.arrayBuffer();
         }
 
         if (!buffer) throw new Error("No file data found");
 
         const parsed = await parsePPTX(buffer);
         if (!parsed?.slides?.length) throw new Error('NO_SLIDES');
-        
+
         setRenderStrategy('client');
         setPptxData(parsed);
         setIsLoading(false);
@@ -222,7 +222,7 @@ export default function Home() {
     setRenderStrategy('server');
     setSlideImageUrls((prev) => {
       prev?.forEach((u) => {
-        try { URL.revokeObjectURL(u); } catch {}
+        try { URL.revokeObjectURL(u); } catch { }
       });
       return [];
     });
@@ -236,48 +236,48 @@ export default function Home() {
   // --- Rasterization Logic ---
   useEffect(() => {
     if (renderStrategy !== 'client' || !pptxData) return;
-    
+
     let cancelled = false;
     const run = async () => {
-        setSlideImageUrls(prev => {
-            prev?.forEach(u => URL.revokeObjectURL(u));
-            return [];
-        });
+      setSlideImageUrls(prev => {
+        prev?.forEach(u => URL.revokeObjectURL(u));
+        return [];
+      });
 
-        const total = pptxData.slides.length;
-        setRasterProgress({ done: 0, total });
-        setIsRasterizing(true);
+      const total = pptxData.slides.length;
+      setRasterProgress({ done: 0, total });
+      setIsRasterizing(true);
 
-        const out = [];
-        try {
-            const aspect = (pptxData.size?.height ?? 9) / (pptxData.size?.width ?? 16);
-            const targetW = 1280;
-            const targetH = Math.max(1, Math.round(targetW * aspect));
-            const scale = 2;
+      const out = [];
+      try {
+        const aspect = (pptxData.size?.height ?? 9) / (pptxData.size?.width ?? 16);
+        const targetW = 1280;
+        const targetH = Math.max(1, Math.round(targetW * aspect));
+        const scale = 2;
 
-            for (let i = 0; i < total; i++) {
-                if (cancelled) return;
-                const canvas = document.createElement('canvas');
-                const renderer = new SlideRenderer(canvas, {
-                    width: targetW,
-                    height: targetH,
-                    slideWidth: pptxData.size.width,
-                    slideHeight: pptxData.size.height,
-                    scale,
-                });
-                await renderer.renderSlide(pptxData.slides[i], 'complete');
-                const blob = await new Promise(r => canvas.toBlob(r, 'image/png'));
-                const url = URL.createObjectURL(blob);
-                out.push(url);
-                setRasterProgress({ done: i + 1, total });
-            }
-            if (!cancelled) setSlideImageUrls(out);
-        } catch (e) {
-            console.error('Rasterize error:', e);
-            if (!cancelled) setError('Rasterization failed.');
-        } finally {
-            if (!cancelled) setIsRasterizing(false);
+        for (let i = 0; i < total; i++) {
+          if (cancelled) return;
+          const canvas = document.createElement('canvas');
+          const renderer = new SlideRenderer(canvas, {
+            width: targetW,
+            height: targetH,
+            slideWidth: pptxData.size.width,
+            slideHeight: pptxData.size.height,
+            scale,
+          });
+          await renderer.renderSlide(pptxData.slides[i], 'complete');
+          const blob = await new Promise(r => canvas.toBlob(r, 'image/png'));
+          const url = URL.createObjectURL(blob);
+          out.push(url);
+          setRasterProgress({ done: i + 1, total });
         }
+        if (!cancelled) setSlideImageUrls(out);
+      } catch (e) {
+        console.error('Rasterize error:', e);
+        if (!cancelled) setError('Rasterization failed.');
+      } finally {
+        if (!cancelled) setIsRasterizing(false);
+      }
     };
     run();
     return () => { cancelled = true; };
@@ -288,17 +288,17 @@ export default function Home() {
     setIsAuthLoading(true);
     setAuthError('');
     try {
-        const res = await VaultService.authenticate(password);
-        if (res.authorized) {
-            setIsVaultAuth(true);
-            setShowAuthDialog(false);
-        } else {
-            setAuthError('Invalid Access Key');
-        }
+      const res = await VaultService.authenticate(password);
+      if (res.authorized) {
+        setIsVaultAuth(true);
+        setShowAuthDialog(false);
+      } else {
+        setAuthError('Invalid Access Key');
+      }
     } catch {
-        setAuthError('Connection Failed');
+      setAuthError('Connection Failed');
     } finally {
-        setIsAuthLoading(false);
+      setIsAuthLoading(false);
     }
   };
 
@@ -319,22 +319,22 @@ export default function Home() {
 
   const handleVaultAction = async (action, ...args) => {
     try {
-        if (action === 'rename') {
-            await VaultService.renameAsset(...args);
-        } else if (action === 'delete') {
-            await VaultService.deleteAsset(...args);
-            setSelectedFile(null);
-        } else if (action === 'upload') {
-            const [file, specificPath] = args;
-            const targetPath = specificPath || vaultPath;
-            await VaultService.uploadFile(targetPath, file);
-            // Always refresh the folder we uploaded to
-            await fetchVault(targetPath);
-            return; // Skip the default fetchVault at the end
-        }
-        fetchVault(vaultPath);
+      if (action === 'rename') {
+        await VaultService.renameAsset(...args);
+      } else if (action === 'delete') {
+        await VaultService.deleteAsset(...args);
+        setSelectedFile(null);
+      } else if (action === 'upload') {
+        const [file, specificPath] = args;
+        const targetPath = specificPath || vaultPath;
+        await VaultService.uploadFile(targetPath, file);
+        // Always refresh the folder we uploaded to
+        await fetchVault(targetPath);
+        return; // Skip the default fetchVault at the end
+      }
+      fetchVault(vaultPath);
     } catch (err) {
-        setError("Action failed: " + err.message);
+      setError("Action failed: " + err.message);
     }
   };
 
@@ -342,42 +342,42 @@ export default function Home() {
 
   const handleLocalSync = async (file) => {
     if (!isVaultAuth) {
-        setShowAuthDialog(true);
-        return;
+      setShowAuthDialog(true);
+      return;
     }
     setIsSyncing(true);
     setError(null);
     try {
-        let fileObj = file;
-        if (file.handle) {
-            fileObj = await file.handle.getFile();
-        }
-        
-        // Upload to the main vault folder
-        const res = await VaultService.uploadFile(ROOT_FOLDER, fileObj);
-        
-        const syncData = {
-            secure_url: res.secure_url,
-            resource_type: res.resource_type,
-            public_id: res.public_id
-        };
+      let fileObj = file;
+      if (file.handle) {
+        fileObj = await file.handle.getFile();
+      }
 
-        // Update cache
-        setLocalSyncCache(prev => ({
-            ...prev,
-            [file.name]: syncData
-        }));
+      // Upload to the main vault folder
+      const res = await VaultService.uploadFile(ROOT_FOLDER, fileObj);
 
-        // Update selection with the new secure path
-        setSelectedFile({
-            ...file,
-            ...syncData
-        });
+      const syncData = {
+        secure_url: res.secure_url,
+        resource_type: res.resource_type,
+        public_id: res.public_id
+      };
+
+      // Update cache
+      setLocalSyncCache(prev => ({
+        ...prev,
+        [file.name]: syncData
+      }));
+
+      // Update selection with the new secure path
+      setSelectedFile({
+        ...file,
+        ...syncData
+      });
     } catch (err) {
-        console.error("Sync error:", err);
-        setError("Failed to synchronize with Microsoft Engine. Please ensure the Vault is unlocked.");
+      console.error("Sync error:", err);
+      setError("Failed to synchronize with Microsoft Engine. Please ensure the Vault is unlocked.");
     } finally {
-        setIsSyncing(false);
+      setIsSyncing(false);
     }
   };
 
@@ -419,15 +419,15 @@ export default function Home() {
           <Typography variant="h6" sx={{ letterSpacing: -1, fontSize: '1.2rem', fontWeight: 900 }}>
             BCH VAULT
           </Typography>
-          
-          <Tabs 
-            value={viewMode} 
+
+          <Tabs
+            value={viewMode}
             onChange={(_, v) => setViewMode(v)}
-            sx={{ 
-                ml: 4,
-                '& .MuiTabs-indicator': { backgroundColor: '#3b82f6', height: 3, borderRadius: '3px 3px 0 0' },
-                '& .MuiTab-root': { color: '#64748b', fontWeight: 800, textTransform: 'none', minWidth: 100, fontSize: '0.9rem' },
-                '& .Mui-selected': { color: '#3b82f6 !important' }
+            sx={{
+              ml: 4,
+              '& .MuiTabs-indicator': { backgroundColor: '#3b82f6', height: 3, borderRadius: '3px 3px 0 0' },
+              '& .MuiTab-root': { color: '#64748b', fontWeight: 800, textTransform: 'none', minWidth: 100, fontSize: '0.9rem' },
+              '& .Mui-selected': { color: '#3b82f6 !important' }
             }}
           >
             <Tab icon={<Cloud size={18} />} iconPosition="start" label="Cloud Vault" value="cloud" />
@@ -437,47 +437,47 @@ export default function Home() {
           <Box sx={{ flex: 1 }} />
 
           {isCloud && !isVaultAuth && (
-            <Button 
-                variant="contained" 
-                startIcon={<Lock size={16} />} 
-                onClick={() => setShowAuthDialog(true)}
-                sx={{ borderRadius: 999, bgcolor: '#334155', '&:hover': { bgcolor: '#475569' } }}
+            <Button
+              variant="contained"
+              startIcon={<Lock size={16} />}
+              onClick={() => setShowAuthDialog(true)}
+              sx={{ borderRadius: 999, bgcolor: '#334155', '&:hover': { bgcolor: '#475569' } }}
             >
-                Admin Unlock
+              Admin Unlock
             </Button>
           )}
 
           {isCloud && isVaultAuth && (
             <Stack direction="row" spacing={1}>
-              <Button 
-                  variant="outlined" 
-                  startIcon={<Folder size={16} />} 
-                  onClick={() => setShowFolderDialog(true)}
-                  sx={{ borderRadius: 999, color: 'white', borderColor: 'rgba(255,255,255,0.2)' }}
+              <Button
+                variant="outlined"
+                startIcon={<Folder size={16} />}
+                onClick={() => setShowFolderDialog(true)}
+                sx={{ borderRadius: 999, color: 'white', borderColor: 'rgba(255,255,255,0.2)' }}
               >
-                  New Folder
+                New Folder
               </Button>
-              <Button 
-                  variant="contained" 
-                  startIcon={isUploading ? <CircularProgress size={16} color="inherit" /> : <Plus size={16} />} 
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={isUploading}
-                  sx={{ borderRadius: 999, bgcolor: '#3b82f6', minWidth: 140 }}
+              <Button
+                variant="contained"
+                startIcon={isUploading ? <CircularProgress size={16} color="inherit" /> : <Plus size={16} />}
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isUploading}
+                sx={{ borderRadius: 999, bgcolor: '#3b82f6', minWidth: 140 }}
               >
-                  {isUploading ? 'Uploading...' : 'Upload Asset'}
+                {isUploading ? 'Uploading...' : 'Upload Asset'}
               </Button>
             </Stack>
           )}
 
           {!isCloud && (
-             <Button
-                variant="contained"
-                onClick={() => fileInputRef.current?.click()}
-                disabled={isUploading}
-                startIcon={isUploading ? <CircularProgress size={16} color="inherit" /> : <Plus size={16} />}
-                sx={{ borderRadius: 999, bgcolor: '#3b82f6', minWidth: 160 }}
+            <Button
+              variant="contained"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={isUploading}
+              startIcon={isUploading ? <CircularProgress size={16} color="inherit" /> : <Plus size={16} />}
+              sx={{ borderRadius: 999, bgcolor: '#3b82f6', minWidth: 160 }}
             >
-                {isUploading ? 'Processing...' : 'Add Presentation'}
+              {isUploading ? 'Processing...' : 'Add Presentation'}
             </Button>
           )}
         </Toolbar>
@@ -504,77 +504,77 @@ export default function Home() {
         <Box sx={{ p: 2.25, flex: 1, overflow: 'auto' }}>
           {isCloud ? (
             isVaultLoading ? (
-                <Stack alignItems="center" spacing={2} sx={{ mt: 10 }}>
-                    <CircularProgress size={24} />
-                    <Typography variant="body2" sx={{ opacity: 0.6 }}>Syncing...</Typography>
-                </Stack>
+              <Stack alignItems="center" spacing={2} sx={{ mt: 10 }}>
+                <CircularProgress size={24} />
+                <Typography variant="body2" sx={{ opacity: 0.6 }}>Syncing...</Typography>
+              </Stack>
             ) : (
-                <VaultSidebar 
-                    files={vaultFiles} 
-                    folders={vaultFolders}
-                    onSelectFile={setSelectedFile}
-                    selectedFile={selectedFile}
-                    onUploadToFolder={handleSidebarUpload}
-                    rootName={ROOT_FOLDER}
-                />
+              <VaultSidebar
+                files={vaultFiles}
+                folders={vaultFolders}
+                onSelectFile={setSelectedFile}
+                selectedFile={selectedFile}
+                onUploadToFolder={handleSidebarUpload}
+                rootName={ROOT_FOLDER}
+              />
             )
           ) : (
             <Box>
-                <Typography variant="overline" sx={{ px: 1, fontWeight: 800, color: 'text.secondary' }}>Local PPTX Files</Typography>
-                {!dirHandle ? (
-                    <Box sx={{ p: 2, bgcolor: 'rgba(255,255,255,0.03)', borderRadius: 3, border: '1px solid rgba(255,255,255,0.08)', mt: 1 }}>
-                        <Typography variant="body2" sx={{ mb: 2, opacity: 0.8 }}>Connect a local folder to browse presentations.</Typography>
-                        <Button fullWidth variant="outlined" onClick={connectFolder} startIcon={<Folder size={16} />}>Connect Folder</Button>
-                    </Box>
-                ) : (
-                    <List sx={{ mt: 1 }}>
-                        {localFiles.map(file => {
-                            const isPptx = file.name.toLowerCase().endsWith('.pptx');
-                            const isDocx = file.name.toLowerCase().endsWith('.docx');
-                            const isSelected = selectedFile?.name === file.name;
-                            
-                            return (
-                                <ListItemButton
-                                    key={file.name}
-                                    selected={isSelected}
-                                    onClick={() => {
-                                        // Check cache before selecting
-                                        const cached = localSyncCache[file.name];
-                                        if (cached) {
-                                            setSelectedFile({ ...file, ...cached });
-                                        } else {
-                                            setSelectedFile(file);
-                                        }
-                                    }}
-                                    sx={{ 
-                                        borderRadius: 2, 
-                                        mb: 0.5,
-                                        '&.Mui-selected': { bgcolor: 'rgba(59,130,246,0.15)' }
-                                    }}
-                                >
-                                    <ListItemIcon sx={{ minWidth: 36 }}>
-                                        {isPptx ? (
-                                            <FileText size={18} color="#ef4444" style={{ filter: 'drop-shadow(0 0 5px rgba(239,68,68,0.3))' }} />
-                                        ) : isDocx ? (
-                                            <FileText size={18} color="#3b82f6" style={{ filter: 'drop-shadow(0 0 5px rgba(59,130,246,0.3))' }} />
-                                        ) : (
-                                            <FileText size={18} color="#94a3b8" />
-                                        )}
-                                    </ListItemIcon>
-                                    <ListItemText 
-                                        primary={file.name} 
-                                        primaryTypographyProps={{ 
-                                            noWrap: true, 
-                                            fontWeight: isSelected ? 800 : 600, 
-                                            fontSize: 13,
-                                            color: isSelected ? 'white' : 'rgba(255,255,255,0.7)'
-                                        }} 
-                                    />
-                                </ListItemButton>
-                            );
-                        })}
-                    </List>
-                )}
+              <Typography variant="overline" sx={{ px: 1, fontWeight: 800, color: 'text.secondary' }}>Local PPTX Files</Typography>
+              {!dirHandle ? (
+                <Box sx={{ p: 2, bgcolor: 'rgba(255,255,255,0.03)', borderRadius: 3, border: '1px solid rgba(255,255,255,0.08)', mt: 1 }}>
+                  <Typography variant="body2" sx={{ mb: 2, opacity: 0.8 }}>Connect a local folder to browse presentations.</Typography>
+                  <Button fullWidth variant="outlined" onClick={connectFolder} startIcon={<Folder size={16} />}>Connect Folder</Button>
+                </Box>
+              ) : (
+                <List sx={{ mt: 1 }}>
+                  {localFiles.map(file => {
+                    const isPptx = file.name.toLowerCase().endsWith('.pptx');
+                    const isDocx = file.name.toLowerCase().endsWith('.docx');
+                    const isSelected = selectedFile?.name === file.name;
+
+                    return (
+                      <ListItemButton
+                        key={file.name}
+                        selected={isSelected}
+                        onClick={() => {
+                          // Check cache before selecting
+                          const cached = localSyncCache[file.name];
+                          if (cached) {
+                            setSelectedFile({ ...file, ...cached });
+                          } else {
+                            setSelectedFile(file);
+                          }
+                        }}
+                        sx={{
+                          borderRadius: 2,
+                          mb: 0.5,
+                          '&.Mui-selected': { bgcolor: 'rgba(59,130,246,0.15)' }
+                        }}
+                      >
+                        <ListItemIcon sx={{ minWidth: 36 }}>
+                          {isPptx ? (
+                            <FileText size={18} color="#ef4444" style={{ filter: 'drop-shadow(0 0 5px rgba(239,68,68,0.3))' }} />
+                          ) : isDocx ? (
+                            <FileText size={18} color="#3b82f6" style={{ filter: 'drop-shadow(0 0 5px rgba(59,130,246,0.3))' }} />
+                          ) : (
+                            <FileText size={18} color="#94a3b8" />
+                          )}
+                        </ListItemIcon>
+                        <ListItemText
+                          primary={file.name}
+                          primaryTypographyProps={{
+                            noWrap: true,
+                            fontWeight: isSelected ? 800 : 600,
+                            fontSize: 13,
+                            color: isSelected ? 'white' : 'rgba(255,255,255,0.7)'
+                          }}
+                        />
+                      </ListItemButton>
+                    );
+                  })}
+                </List>
+              )}
             </Box>
           )}
         </Box>
@@ -583,143 +583,143 @@ export default function Home() {
       {/* Main Area */}
       <Box component="main" sx={{ flex: 1, pt: '64px', minWidth: 0 }}>
         <Box sx={{ height: '100%', p: 3, display: 'flex', flexDirection: 'column' }}>
-            <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 2 }}>
-                <Typography variant="body2" sx={{ color: '#64748b', fontWeight: 600 }}>
-                    {isCloud ? `Vault / ${vaultPath.split('/').slice(1).join(' / ')}` : 'Local Workspace'}
-                </Typography>
-                {isCloud && vaultPath !== ROOT_FOLDER && (
-                    <Button 
-                        size="small" 
-                        onClick={navigateBack}
-                        startIcon={<ChevronLeft size={14} />}
-                        sx={{ ml: 2, color: '#3b82f6', textTransform: 'none', fontWeight: 800 }}
+          <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 2 }}>
+            <Typography variant="body2" sx={{ color: '#64748b', fontWeight: 600 }}>
+              {isCloud ? `Vault / ${vaultPath.split('/').slice(1).join(' / ')}` : 'Local Workspace'}
+            </Typography>
+            {isCloud && vaultPath !== ROOT_FOLDER && (
+              <Button
+                size="small"
+                onClick={navigateBack}
+                startIcon={<ChevronLeft size={14} />}
+                sx={{ ml: 2, color: '#3b82f6', textTransform: 'none', fontWeight: 800 }}
+              >
+                Back to Parent
+              </Button>
+            )}
+          </Stack>
+
+          <Box
+            ref={stageRef}
+            onMouseMove={handleStageMouseMove}
+            onClick={handleStageMouseMove}
+            sx={{
+              flex: 1,
+              borderRadius: isFullscreen ? 0 : 4,
+              border: isFullscreen ? 'none' : '1px solid rgba(255,255,255,0.08)',
+              backgroundColor: isFullscreen ? '#020617' : 'rgba(15, 23, 42, 0.3)',
+              overflow: 'hidden',
+              display: 'flex',
+              flexDirection: 'column',
+              position: 'relative',
+              transition: 'border-radius 0.3s'
+            }}
+          >
+            <Fade in={showControls}>
+              <Box sx={{
+                position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10,
+                p: 2, display: 'flex', alignItems: 'center',
+                background: 'linear-gradient(to bottom, rgba(2,6,23,0.9), transparent)',
+                pointerEvents: showControls ? 'auto' : 'none'
+              }}>
+                <Box sx={{ flex: 1, display: 'flex', alignItems: 'center', gap: 2 }}>
+                  <Typography variant="body2" sx={{ fontWeight: 800, textShadow: '0 2px 10px rgba(0,0,0,0.8)' }}>
+                    {selectedFileName || 'Select an asset'}
+                  </Typography>
+                  {selectedFile?.secure_url && selectedFileName.toLowerCase().endsWith('.pptx') && (
+                    <Box
+                      sx={{
+                        bgcolor: 'rgba(59, 130, 246, 0.2)',
+                        backdropFilter: 'blur(10px)',
+                        border: '1px solid rgba(59, 130, 246, 0.4)',
+                        color: '#60a5fa',
+                        px: 1.5,
+                        py: 0.25,
+                        borderRadius: 2,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 1
+                      }}
                     >
-                        Back to Parent
-                    </Button>
-                )}
-            </Stack>
-
-            <Box
-                ref={stageRef}
-                onMouseMove={handleStageMouseMove}
-                onClick={handleStageMouseMove}
-                sx={{
-                    flex: 1,
-                    borderRadius: isFullscreen ? 0 : 4,
-                    border: isFullscreen ? 'none' : '1px solid rgba(255,255,255,0.08)',
-                    backgroundColor: isFullscreen ? '#020617' : 'rgba(15, 23, 42, 0.3)',
-                    overflow: 'hidden',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    position: 'relative',
-                    transition: 'border-radius 0.3s'
-                }}
-            >
-                <Fade in={showControls}>
-                    <Box sx={{ 
-                        position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10,
-                        p: 2, display: 'flex', alignItems: 'center', 
-                        background: 'linear-gradient(to bottom, rgba(2,6,23,0.9), transparent)',
-                        pointerEvents: showControls ? 'auto' : 'none'
-                    }}>
-                        <Box sx={{ flex: 1, display: 'flex', alignItems: 'center', gap: 2 }}>
-                            <Typography variant="body2" sx={{ fontWeight: 800, textShadow: '0 2px 10px rgba(0,0,0,0.8)' }}>
-                                {selectedFileName || 'Select an asset'}
-                            </Typography>
-                            {selectedFile?.secure_url && selectedFileName.toLowerCase().endsWith('.pptx') && (
-                                <Box 
-                                    sx={{ 
-                                        bgcolor: 'rgba(59, 130, 246, 0.2)',
-                                        backdropFilter: 'blur(10px)',
-                                        border: '1px solid rgba(59, 130, 246, 0.4)',
-                                        color: '#60a5fa',
-                                        px: 1.5,
-                                        py: 0.25,
-                                        borderRadius: 2,
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        gap: 1
-                                    }}
-                                >
-                                    <span style={{ fontSize: '10px', fontWeight: 900 }}>IFRAME MODE</span>
-                                    <Typography variant="caption" sx={{ fontWeight: 700, fontSize: '11px' }}>
-                                        PPT detected and now displaying it in an iframe
-                                    </Typography>
-                                </Box>
-                            )}
-                        </Box>
-                        {selectedFile && isCloud && isVaultAuth && (
-                            <VaultActions 
-                                file={selectedFile} 
-                                onRename={(id, name, type) => handleVaultAction('rename', id, name, type)} 
-                                onDelete={(id, type) => handleVaultAction('delete', id, type)} 
-                            />
-                        )}
-                        {selectedFile && (
-                            <>
-                                <IconButton 
-                                    size={isFullscreen ? "medium" : "small"} 
-                                    onClick={toggleFullscreen} 
-                                    sx={{ 
-                                        ml: 2, 
-                                        p: isFullscreen ? 2 : 1,
-                                        color: 'white', 
-                                        bgcolor: 'rgba(255,255,255,0.1)',
-                                        '&:hover': { bgcolor: 'rgba(255,255,255,0.2)' }
-                                    }}
-                                >
-                                    {isFullscreen ? <Minimize size={isFullscreen ? 24 : 18} /> : <Maximize size={18} />}
-                                </IconButton>
-                                <IconButton 
-                                    size={isFullscreen ? "medium" : "small"} 
-                                    onClick={handleCloseViewer} 
-                                    sx={{ 
-                                        ml: 1, 
-                                        p: isFullscreen ? 2 : 1,
-                                        color: 'white', 
-                                        bgcolor: 'rgba(255,255,255,0.1)',
-                                        '&:hover': { bgcolor: 'rgba(255,255,255,0.2)' }
-                                    }}
-                                >
-                                    <X size={isFullscreen ? 24 : 18} />
-                                </IconButton>
-                            </>
-                        )}
+                      <span style={{ fontSize: '10px', fontWeight: 900 }}>IFRAME MODE</span>
+                      <Typography variant="caption" sx={{ fontWeight: 700, fontSize: '11px' }}>
+                        PPT detected and now displaying it in an iframe
+                      </Typography>
                     </Box>
-                </Fade>
-
-                <Box sx={{ flex: 1, position: 'relative', overflow: 'hidden', p: 0 }}>
-                    {!selectedFile ? (
-                        <Stack alignItems="center" justifyContent="center" sx={{ height: '100%', opacity: 0.3 }}>
-                            <Box sx={{ p: 4, borderRadius: 4, border: '2px dashed rgba(255,255,255,0.1)', textAlign: 'center' }}>
-                                <Cloud size={48} />
-                                <Typography variant="h6" sx={{ mt: 2, fontWeight: 800 }}>Empty Stage</Typography>
-                                <Typography variant="body2">Select a file from the sidebar</Typography>
-                            </Box>
-                        </Stack>
-                    ) : (
-                        error ? (
-                            <Stack alignItems="center" justifyContent="center" sx={{ height: '100%' }}>
-                                <Alert severity="error" variant="outlined" sx={{ borderRadius: 3 }}>{error}</Alert>
-                            </Stack>
-                        ) : isRasterizing || isLoading ? (
-                            <Stack alignItems="center" justifyContent="center" sx={{ height: '100%', spacing: 2 }}>
-                                <CircularProgress />
-                                <Typography sx={{ mt: 2, fontWeight: 800 }}>
-                                    {isRasterizing ? `Rendering Slide ${rasterProgress.done + 1}...` : 'Loading Asset...'}
-                                </Typography>
-                            </Stack>
-                        ) : (
-                            <VaultMediaView 
-                              file={selectedFile} 
-                              isFullscreen={isFullscreen}
-                              isSyncing={isSyncing}
-                              onSync={() => handleLocalSync(selectedFile)}
-                            />
-                        )
-                    )}
+                  )}
                 </Box>
+                {selectedFile && isCloud && isVaultAuth && (
+                  <VaultActions
+                    file={selectedFile}
+                    onRename={(id, name, type) => handleVaultAction('rename', id, name, type)}
+                    onDelete={(id, type) => handleVaultAction('delete', id, type)}
+                  />
+                )}
+                {selectedFile && (
+                  <>
+                    <IconButton
+                      size={isFullscreen ? "medium" : "small"}
+                      onClick={toggleFullscreen}
+                      sx={{
+                        ml: 2,
+                        p: isFullscreen ? 2 : 1,
+                        color: 'white',
+                        bgcolor: 'rgba(255,255,255,0.1)',
+                        '&:hover': { bgcolor: 'rgba(255,255,255,0.2)' }
+                      }}
+                    >
+                      {isFullscreen ? <Minimize size={isFullscreen ? 24 : 18} /> : <Maximize size={18} />}
+                    </IconButton>
+                    <IconButton
+                      size={isFullscreen ? "medium" : "small"}
+                      onClick={handleCloseViewer}
+                      sx={{
+                        ml: 1,
+                        p: isFullscreen ? 2 : 1,
+                        color: 'white',
+                        bgcolor: 'rgba(255,255,255,0.1)',
+                        '&:hover': { bgcolor: 'rgba(255,255,255,0.2)' }
+                      }}
+                    >
+                      <X size={isFullscreen ? 24 : 18} />
+                    </IconButton>
+                  </>
+                )}
+              </Box>
+            </Fade>
+
+            <Box sx={{ flex: 1, position: 'relative', overflow: 'hidden', p: 0 }}>
+              {!selectedFile ? (
+                <Stack alignItems="center" justifyContent="center" sx={{ height: '100%', opacity: 0.3 }}>
+                  <Box sx={{ p: 4, borderRadius: 4, border: '2px dashed rgba(255,255,255,0.1)', textAlign: 'center' }}>
+                    <Cloud size={48} />
+                    <Typography variant="h6" sx={{ mt: 2, fontWeight: 800 }}>Empty Stage</Typography>
+                    <Typography variant="body2">Select a file from the sidebar</Typography>
+                  </Box>
+                </Stack>
+              ) : (
+                error ? (
+                  <Stack alignItems="center" justifyContent="center" sx={{ height: '100%' }}>
+                    <Alert severity="error" variant="outlined" sx={{ borderRadius: 3 }}>{error}</Alert>
+                  </Stack>
+                ) : isRasterizing || isLoading ? (
+                  <Stack alignItems="center" justifyContent="center" sx={{ height: '100%', spacing: 2 }}>
+                    <CircularProgress />
+                    <Typography sx={{ mt: 2, fontWeight: 800 }}>
+                      {isRasterizing ? `Rendering Slide ${rasterProgress.done + 1}...` : 'Loading Asset...'}
+                    </Typography>
+                  </Stack>
+                ) : (
+                  <VaultMediaView
+                    file={selectedFile}
+                    isFullscreen={isFullscreen}
+                    isSyncing={isSyncing}
+                    onSync={() => handleLocalSync(selectedFile)}
+                  />
+                )
+              )}
             </Box>
+          </Box>
         </Box>
       </Box>
 
@@ -727,26 +727,26 @@ export default function Home() {
       <Dialog open={showAuthDialog} onClose={() => setShowAuthDialog(false)}>
         <DialogTitle sx={{ fontWeight: 900 }}>Admin Access</DialogTitle>
         <DialogContent sx={{ minWidth: 320 }}>
-            {authError && <Alert severity="error" sx={{ mb: 2, borderRadius: 2 }}>{authError}</Alert>}
-            <TextField 
-                fullWidth 
-                type="password" 
-                label="Access Key" 
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                sx={{ mt: 1 }}
-            />
+          {authError && <Alert severity="error" sx={{ mb: 2, borderRadius: 2 }}>{authError}</Alert>}
+          <TextField
+            fullWidth
+            type="password"
+            label="Access Key"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            sx={{ mt: 1 }}
+          />
         </DialogContent>
         <DialogActions sx={{ p: 2 }}>
-            <Button onClick={() => setShowAuthDialog(false)} disabled={isAuthLoading}>Cancel</Button>
-            <Button 
-                variant="contained" 
-                onClick={handleVaultLogin} 
-                disabled={isAuthLoading || !password}
-                sx={{ px: 3, minWidth: 100 }}
-            >
-                {isAuthLoading ? <CircularProgress size={20} color="inherit" /> : 'Unlock'}
-            </Button>
+          <Button onClick={() => setShowAuthDialog(false)} disabled={isAuthLoading}>Cancel</Button>
+          <Button
+            variant="contained"
+            onClick={handleVaultLogin}
+            disabled={isAuthLoading || !password}
+            sx={{ px: 3, minWidth: 100 }}
+          >
+            {isAuthLoading ? <CircularProgress size={20} color="inherit" /> : 'Unlock'}
+          </Button>
         </DialogActions>
       </Dialog>
 
@@ -754,21 +754,21 @@ export default function Home() {
       <Dialog open={showFolderDialog} onClose={() => setShowFolderDialog(false)}>
         <DialogTitle sx={{ fontWeight: 900 }}>Create New Folder</DialogTitle>
         <DialogContent sx={{ minWidth: 320 }}>
-            <Typography variant="body2" sx={{ mb: 2, opacity: 0.7 }}>
-                This will create a new subfolder in <strong>{vaultPath.split('/').pop()}</strong>
-            </Typography>
-            <TextField 
-                fullWidth 
-                autoFocus
-                label="Folder Name" 
-                value={newFolderName}
-                onChange={(e) => setNewFolderName(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && handleCreateFolder()}
-            />
+          <Typography variant="body2" sx={{ mb: 2, opacity: 0.7 }}>
+            This will create a new subfolder in <strong>{vaultPath.split('/').pop()}</strong>
+          </Typography>
+          <TextField
+            fullWidth
+            autoFocus
+            label="Folder Name"
+            value={newFolderName}
+            onChange={(e) => setNewFolderName(e.target.value)}
+            onKeyPress={(e) => e.key === 'Enter' && handleCreateFolder()}
+          />
         </DialogContent>
         <DialogActions sx={{ p: 2 }}>
-            <Button onClick={() => setShowFolderDialog(false)}>Cancel</Button>
-            <Button variant="contained" onClick={handleCreateFolder} sx={{ px: 3 }}>Create</Button>
+          <Button onClick={() => setShowFolderDialog(false)}>Cancel</Button>
+          <Button variant="contained" onClick={handleCreateFolder} sx={{ px: 3 }}>Create</Button>
         </DialogActions>
       </Dialog>
 
@@ -776,68 +776,68 @@ export default function Home() {
         type="file"
         ref={fileInputRef}
         onChange={async (e) => {
-            const file = e.target.files[0];
-            if (!file) return;
-            
-            setIsUploading(true);
-            try {
-                // Use targeted path if provided from sidebar, otherwise fall back to global vaultPath
-                const targetPath = uploadTargetPath || vaultPath;
-                
-                if (isCloud) {
-                    await handleVaultAction('upload', file, targetPath);
-                    setSuccessMessage(`Successfully uploaded to ${targetPath.split('/').pop() || 'Files'}`);
-                } else {
-                    if (dirHandle) await saveFile(file, file.name);
-                    else setSelectedFile({ name: file.name, handle: { getFile: () => Promise.resolve(file) } });
-                }
-            } catch (err) {
-                console.error("Upload error:", err);
-                setError(err.message || "Upload failed");
-            } finally {
-                setIsUploading(false);
-                setUploadTargetPath(null);
-                e.target.value = '';
+          const file = e.target.files[0];
+          if (!file) return;
+
+          setIsUploading(true);
+          try {
+            // Use targeted path if provided from sidebar, otherwise fall back to global vaultPath
+            const targetPath = uploadTargetPath || vaultPath;
+
+            if (isCloud) {
+              await handleVaultAction('upload', file, targetPath);
+              setSuccessMessage(`Successfully uploaded to ${targetPath.split('/').pop() || 'Files'}`);
+            } else {
+              if (dirHandle) await saveFile(file, file.name);
+              else setSelectedFile({ name: file.name, handle: { getFile: () => Promise.resolve(file) } });
             }
+          } catch (err) {
+            console.error("Upload error:", err);
+            setError(err.message || "Upload failed");
+          } finally {
+            setIsUploading(false);
+            setUploadTargetPath(null);
+            e.target.value = '';
+          }
         }}
         style={{ display: 'none' }}
       />
 
       {/* Global Upload Overlay */}
       <Backdrop
-        sx={{ 
-            color: '#fff', 
-            zIndex: (theme) => theme.zIndex.drawer + 2,
-            flexDirection: 'column',
-            gap: 3,
-            bgcolor: 'rgba(2, 6, 23, 0.9)',
-            backdropFilter: 'blur(10px)'
+        sx={{
+          color: '#fff',
+          zIndex: (theme) => theme.zIndex.drawer + 2,
+          flexDirection: 'column',
+          gap: 3,
+          bgcolor: 'rgba(2, 6, 23, 0.9)',
+          backdropFilter: 'blur(10px)'
         }}
         open={isUploading}
       >
         <CircularProgress color="inherit" size={60} thickness={4} sx={{ filter: 'drop-shadow(0 0 15px #3b82f6)' }} />
         <Box sx={{ textAlign: 'center' }}>
-            <Typography variant="h5" sx={{ fontWeight: 900, letterSpacing: -0.5, mb: 1 }}>
-                Uploading Asset
-            </Typography>
-            <Typography variant="body1" sx={{ opacity: 0.6 }}>
-                Adding to <strong>{uploadTargetPath || vaultPath}</strong>...
-            </Typography>
+          <Typography variant="h5" sx={{ fontWeight: 900, letterSpacing: -0.5, mb: 1 }}>
+            Uploading Asset
+          </Typography>
+          <Typography variant="body1" sx={{ opacity: 0.6 }}>
+            Adding to <strong>{uploadTargetPath || vaultPath}</strong>...
+          </Typography>
         </Box>
       </Backdrop>
 
       {/* Success Notification */}
-      <Snackbar 
-        open={Boolean(successMessage)} 
-        autoHideDuration={4000} 
+      <Snackbar
+        open={Boolean(successMessage)}
+        autoHideDuration={4000}
         onClose={() => setSuccessMessage('')}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
       >
-        <Alert 
-            onClose={() => setSuccessMessage('')} 
-            severity="success" 
-            variant="filled"
-            sx={{ width: '100%', borderRadius: 3, fontWeight: 700 }}
+        <Alert
+          onClose={() => setSuccessMessage('')}
+          severity="success"
+          variant="filled"
+          sx={{ width: '100%', borderRadius: 3, fontWeight: 700 }}
         >
           {successMessage}
         </Alert>
