@@ -443,7 +443,7 @@ export default function Home() {
               onClick={() => setShowAuthDialog(true)}
               sx={{ borderRadius: 999, bgcolor: '#334155', '&:hover': { bgcolor: '#475569' } }}
             >
-              Admin Unlock
+              Upload
             </Button>
           )}
 
