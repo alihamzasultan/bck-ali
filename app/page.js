@@ -629,7 +629,7 @@ export default function Home() {
             <Fade in={showControls}>
               <Box sx={{
                 position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10,
-                p: { xs: 1, sm: 2 }, display: 'flex', alignItems: 'center',
+                p: { xs: 1, sm: 2 }, pr: { xs: 10, sm: 14 }, display: 'flex', alignItems: 'center',
                 background: 'linear-gradient(to bottom, rgba(2,6,23,0.9), transparent)',
                 pointerEvents: showControls ? 'auto' : 'none'
               }}>
@@ -666,38 +666,45 @@ export default function Home() {
                     onDelete={(id, type) => handleVaultAction('delete', id, type)}
                   />
                 )}
-                {selectedFile && (
-                  <>
-                    <IconButton
-                      size={isFullscreen ? "medium" : "small"}
-                      onClick={toggleFullscreen}
-                      sx={{
-                        ml: 2,
-                        p: isFullscreen ? 2 : 1,
-                        color: 'white',
-                        bgcolor: 'rgba(255,255,255,0.1)',
-                        '&:hover': { bgcolor: 'rgba(255,255,255,0.2)' }
-                      }}
-                    >
-                      {isFullscreen ? <Minimize size={isFullscreen ? 24 : 18} /> : <Maximize size={18} />}
-                    </IconButton>
-                    <IconButton
-                      size={isFullscreen ? "medium" : "small"}
-                      onClick={handleCloseViewer}
-                      sx={{
-                        ml: 1,
-                        p: isFullscreen ? 2 : 1,
-                        color: 'white',
-                        bgcolor: 'rgba(255,255,255,0.1)',
-                        '&:hover': { bgcolor: 'rgba(255,255,255,0.2)' }
-                      }}
-                    >
-                      <X size={isFullscreen ? 24 : 18} />
-                    </IconButton>
-                  </>
-                )}
               </Box>
             </Fade>
+
+            {selectedFile && (
+              <Box sx={{
+                position: 'absolute', top: 0, right: 0, zIndex: 11,
+                p: { xs: 1, sm: 2 }, display: 'flex', alignItems: 'center',
+                pointerEvents: 'auto'
+              }}>
+                <IconButton
+                  size={isFullscreen ? "medium" : "small"}
+                  onClick={toggleFullscreen}
+                  sx={{
+                    ml: 1,
+                    p: isFullscreen ? 2 : 1,
+                    color: 'white',
+                    bgcolor: 'rgba(255,255,255,0.1)',
+                    backdropFilter: 'blur(10px)',
+                    '&:hover': { bgcolor: 'rgba(255,255,255,0.2)' }
+                  }}
+                >
+                  {isFullscreen ? <Minimize size={isFullscreen ? 24 : 18} /> : <Maximize size={18} />}
+                </IconButton>
+                <IconButton
+                  size={isFullscreen ? "medium" : "small"}
+                  onClick={handleCloseViewer}
+                  sx={{
+                    ml: 1,
+                    p: isFullscreen ? 2 : 1,
+                    color: 'white',
+                    bgcolor: 'rgba(255,255,255,0.1)',
+                    backdropFilter: 'blur(10px)',
+                    '&:hover': { bgcolor: 'rgba(255,255,255,0.2)' }
+                  }}
+                >
+                  <X size={isFullscreen ? 24 : 18} />
+                </IconButton>
+              </Box>
+            )}
 
             <Box sx={{ flex: 1, position: 'relative', overflow: 'hidden', p: 0, display: 'flex', flexDirection: 'column' }}>
               {!selectedFile ? (
