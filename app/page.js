@@ -735,9 +735,9 @@ export default function Home() {
       </Box>
 
       {/* Auth Dialog */}
-      <Dialog open={showAuthDialog} onClose={() => setShowAuthDialog(false)}>
+      <Dialog open={showAuthDialog} onClose={() => setShowAuthDialog(false)} fullWidth maxWidth="xs">
         <DialogTitle sx={{ fontWeight: 900 }}>Admin Access</DialogTitle>
-        <DialogContent sx={{ minWidth: 320 }}>
+        <DialogContent>
           {authError && <Alert severity="error" sx={{ mb: 2, borderRadius: 2 }}>{authError}</Alert>}
           <TextField
             fullWidth
@@ -762,9 +762,9 @@ export default function Home() {
       </Dialog>
 
       {/* Folder Creation Dialog */}
-      <Dialog open={showFolderDialog} onClose={() => setShowFolderDialog(false)}>
+      <Dialog open={showFolderDialog} onClose={() => setShowFolderDialog(false)} fullWidth maxWidth="xs">
         <DialogTitle sx={{ fontWeight: 900 }}>Create New Folder</DialogTitle>
-        <DialogContent sx={{ minWidth: 320 }}>
+        <DialogContent>
           <Typography variant="body2" sx={{ mb: 2, opacity: 0.7 }}>
             This will create a new subfolder in <strong>{vaultPath.split('/').pop()}</strong>
           </Typography>
