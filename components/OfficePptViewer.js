@@ -2,12 +2,14 @@
 import React, { useState, useEffect } from 'react';
 import { Box, CircularProgress, Stack, Typography } from '@mui/material';
 
-export default function OfficePptViewer({ url, isVisible }) {
+export default function OfficePptViewer({ url, isVisible, isFullscreen }) {
+
   const [isIframeLoading, setIsIframeLoading] = useState(true);
 
   // Encode the URL for Microsoft
   const encodedUrl = encodeURIComponent(url);
-  const viewerUrl = `https://view.officeapps.live.com/op/embed.aspx?src=${encodedUrl}`;
+  const viewerUrl = `https://view.officeapps.live.com/op/embed.aspx?src=${encodedUrl}&wdAr=0`;
+
 
   useEffect(() => {
     if (!isVisible) {
@@ -24,21 +26,29 @@ export default function OfficePptViewer({ url, isVisible }) {
         flexDirection: 'column',
         alignItems: 'center',
         bgcolor: '#000',
-        overflow: 'auto',
-        p: 0
+        overflow: isFullscreen ? 'hidden' : 'auto',
+        p: isFullscreen ? 0 : { xs: 1, md: 1.5, lg: 2 } // Reduced padding to maximize height
       }}
+
+
+
     >
       <Box
         sx={{
           width: '100%',
-          maxWidth: '1200px', // Optional: centers on ultra-wide TVs
-          height: isVisible ? { xs: '600px', md: '800px', lg: '85vh' } : 0,
-          minHeight: isVisible ? '600px' : 0,
+          maxWidth: isFullscreen ? 'none' : '100%', // Allow full width to maximize resolution
+
+          height: isVisible ? (isFullscreen ? '96vh' : 'calc(100vh - 80px)') : 0,
+          minHeight: isVisible ? (isFullscreen ? '96vh' : '600px') : 0,
+
+
+
           position: 'relative',
-          boxShadow: '0 30px 100px rgba(0,0,0,1)',
+          boxShadow: isFullscreen ? 'none' : '0 30px 100px rgba(0,0,0,1)',
           bgcolor: '#1e293b',
-          transition: 'height 0.3s'
+          transition: 'all 0.3s ease'
         }}
+
       >
         {/* Loading Overlay */}
         {isIframeLoading && (

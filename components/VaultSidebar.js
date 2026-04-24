@@ -7,182 +7,211 @@ import {
   ListItemText, 
   Typography, 
   Box, 
-  Collapse,
-  alpha,
-  IconButton
+  IconButton,
+  TextField,
+  InputAdornment,
+  Button,
+  CircularProgress,
+  Divider,
+  Tooltip
 } from '@mui/material';
 import { 
-  Folder, 
-  FolderOpen, 
-  Image, 
-  Video, 
+  Image as ImageIcon, 
+  Film, 
   FileText, 
-  ChevronRight, 
-  ChevronDown,
-  MoreVertical,
-  Upload
+  Search,
+  Upload,
+  X,
+  Shield,
+  Lock,
+  Plus,
+  ChevronLeft,
+  LayoutGrid,
+  Settings
 } from 'lucide-react';
-import { Menu, MenuItem } from '@mui/material';
 
 export default function VaultSidebar({ 
-  files, 
+  files = [], 
   onSelectFile,
   selectedFile,
-  onUploadToFolder,
-  folders = [],
-  rootName = "BCH-FILES"
+  onUpload,
+  isLocked = false,
+  isUploading = false,
+  onUnlock,
+  onClose
 }) {
-  const [openFolders, setOpenFolders] = useState({});
-  const [menuAnchor, setMenuAnchor] = useState(null);
-  const [activeFolder, setActiveFolder] = useState(null);
 
-  // --- Transform flat files into a tree ---
-  const fileTree = useMemo(() => {
-    const root = { name: 'Root', folders: {}, files: [] };
-    
-    // 1. Initialize tree with explicit folders from API (handles empty folders)
-    folders.forEach(f => {
-        // Paths from API are like "BCH-FILES/Computer 2"
-        const relPath = f.path.startsWith(rootName + '/') 
-            ? f.path.replace(rootName + '/', '') 
-            : f.path === rootName ? '' : f.path;
-            
-        if (!relPath) return;
+  const [searchQuery, setSearchQuery] = useState('');
 
-        const parts = relPath.split('/');
-        let current = root;
+  const filteredFiles = useMemo(() => {
+    if (!searchQuery.trim()) return files;
+    const query = searchQuery.toLowerCase();
+    return files.filter(f => 
+      (f.name || '').toLowerCase().includes(query) || 
+      (f.public_id || '').toLowerCase().includes(query)
+    );
+  }, [files, searchQuery]);
+
+  return (
+    <Box sx={{ 
+      display: 'flex', 
+      flexDirection: 'column', 
+      height: '100%', 
+      bgcolor: '#020617', // Deepest dark
+      borderRight: '1px solid rgba(255,255,255,0.05)',
+      fontFamily: '"Inter", "Roboto", sans-serif'
+    }}>
+      {/* Header Section */}
+      <Box sx={{ 
+        p: 2, 
+        pb: 1.5,
+        display: 'flex', 
+        alignItems: 'center', 
+        justifyContent: 'space-between',
+        background: 'linear-gradient(to bottom, rgba(30,41,59,0.2), transparent)'
+      }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2 }}>
+          <Box sx={{ color: '#3b82f6', display: 'flex' }}>
+            <Shield size={20} weight="fill" />
+          </Box>
+          <Typography variant="h6" sx={{ 
+            letterSpacing: -0.5, 
+            fontSize: '0.95rem', 
+            fontWeight: 800, 
+            color: '#f8fafc',
+            textTransform: 'uppercase'
+          }}>
+            Vault
+          </Typography>
+        </Box>
         
-        parts.forEach((folderName, i) => {
-            if (!current.folders[folderName]) {
-                const subPath = parts.slice(0, i + 1).join('/');
-                current.folders[folderName] = {
-                    name: folderName,
-                    path: `${rootName}/${subPath}`,
-                    folders: {},
-                    files: []
-                };
+        <Tooltip title="Hide Sidebar">
+          <IconButton 
+            size="small" 
+            onClick={onClose} 
+            sx={{ 
+              color: '#64748b', 
+              transition: 'all 0.2s',
+              '&:hover': { color: '#f8fafc', bgcolor: 'rgba(255,255,255,0.05)' } 
+            }}
+          >
+            <ChevronLeft size={18} />
+          </IconButton>
+        </Tooltip>
+      </Box>
+
+      {/* Action Area */}
+      <Box sx={{ px: 2, mb: 2.5 }}>
+        {isLocked ? (
+          <Button
+            fullWidth
+            variant="contained"
+            onClick={onUnlock}
+            startIcon={<Lock size={14} />}
+            sx={{ 
+              borderRadius: '8px', 
+              bgcolor: '#1e293b', 
+              color: '#94a3b8',
+              boxShadow: 'none',
+              '&:hover': { bgcolor: '#334155', color: '#f1f5f9' }, 
+              textTransform: 'none',
+              fontWeight: 600,
+              fontSize: '0.75rem',
+              py: 1,
+              border: '1px solid rgba(255,255,255,0.05)'
+            }}
+          >
+            Unlock Access
+          </Button>
+        ) : (
+          <Button
+            fullWidth
+            variant="contained"
+            onClick={onUpload}
+            disabled={isUploading}
+            startIcon={isUploading ? <CircularProgress size={14} color="inherit" /> : <Plus size={14} />}
+            sx={{ 
+              borderRadius: '8px', 
+              bgcolor: '#3b82f6', 
+              boxShadow: '0 4px 12px rgba(59,130,246,0.25)',
+              '&:hover': { bgcolor: '#2563eb', boxShadow: '0 6px 16px rgba(59,130,246,0.35)' }, 
+              textTransform: 'none',
+              fontWeight: 600,
+              fontSize: '0.75rem',
+              py: 1
+            }}
+          >
+            {isUploading ? 'Uploading...' : 'New Asset'}
+          </Button>
+        )}
+      </Box>
+
+      <Divider sx={{ mx: 2, borderColor: 'rgba(255,255,255,0.03)', mb: 2 }} />
+
+      {/* Search Bar - Professional Minimalist */}
+      <Box sx={{ px: 2, mb: 2 }}>
+        <TextField
+          fullWidth
+          size="small"
+          placeholder="Search repository..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          autoComplete="off"
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <Search size={14} color="#475569" />
+              </InputAdornment>
+            ),
+            sx: {
+              bgcolor: 'transparent',
+              fontSize: '0.75rem',
+              color: '#f8fafc',
+              '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255,255,255,0.08)' },
+              '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255,255,255,0.2)' },
+              '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: '#3b82f6', borderWidth: '1px' },
+              height: 36,
+              borderRadius: '6px'
             }
-            current = current.folders[folderName];
-        });
-    });
+          }}
+        />
+      </Box>
 
-    // 2. Populate files into the tree
-    files.forEach(file => {
-      const parts = file.name.split('/');
-      let current = root;
-      
-      for (let i = 0; i < parts.length - 1; i++) {
-        const folderName = parts[i];
-        if (!current.folders[folderName]) {
-          const subPath = parts.slice(0, i + 1).join('/');
-          const fullPath = `${rootName}/${subPath}`;
-          
-          current.folders[folderName] = { 
-            name: folderName, 
-            path: fullPath, 
-            folders: {}, 
-            files: [] 
-          };
-        }
-        current = current.folders[folderName];
-      }
-      
-      const fileName = parts[parts.length - 1];
-      current.files.push({ ...file, displayName: fileName });
-    });
-    
-    return root;
-  }, [files, folders, rootName]);
+      <Box sx={{ display: 'flex', alignItems: 'center', px: 2, mb: 1.5, gap: 1 }}>
+        <LayoutGrid size={12} color="#475569" />
+        <Typography 
+          variant="overline" 
+          sx={{ 
+            fontWeight: 700, 
+            color: '#475569', 
+            letterSpacing: '0.05em', 
+            fontSize: '0.6rem',
+            textTransform: 'uppercase'
+          }}
+        >
+          All Resources
+        </Typography>
+      </Box>
 
-  const toggleFolder = (path) => {
-    setOpenFolders(prev => ({ ...prev, [path]: !prev[path] }));
-  };
-
-  const renderTree = (node, path = '', level = 0) => {
-    // Sort folders and files alphabetically
-    const folderNames = Object.keys(node.folders).sort();
-    const sortedFiles = [...node.files].sort((a, b) => a.displayName.localeCompare(b.displayName));
-
-    return (
-      <Box 
-        key={path || 'root'} 
+      {/* File List - High Density & Professional */}
+      <List 
+        dense 
         sx={{ 
-          display: 'flex', 
-          flexDirection: 'column',
-          width: '100%'
+          px: 1, 
+          flex: 1, 
+          overflowY: 'auto',
+          '&::-webkit-scrollbar': { width: '2px' },
+          '&::-webkit-scrollbar-thumb': { bgcolor: 'rgba(255,255,255,0.05)', borderRadius: 10 },
+          '&::-webkit-scrollbar-track': { bgcolor: 'transparent' }
         }}
       >
-        {folderNames.map(name => {
-          const folder = node.folders[name];
-          const fullPath = folder.path;
-          const isOpen = !!openFolders[fullPath];
-          
-          return (
-            <React.Fragment key={fullPath}>
-              <ListItemButton 
-                onClick={() => toggleFolder(fullPath)}
-                sx={{ 
-                  pl: level * 2 + 1,
-                  borderRadius: 2,
-                  mb: 0.5,
-                  transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-                  '&:hover': { 
-                    bgcolor: 'rgba(255,255,255,0.08)',
-                    transform: 'translateX(4px)'
-                  }
-                }}
-              >
-                <ListItemIcon sx={{ minWidth: 32 }}>
-                  {isOpen ? (
-                    <FolderOpen size={18} color="#94a3b8" style={{ filter: 'drop-shadow(0 0 8px rgba(148,163,184,0.3))' }} />
-                  ) : (
-                    <Folder size={18} color="#64748b" />
-                  )}
-                </ListItemIcon>
-                <ListItemText 
-                  primary={name} 
-                  primaryTypographyProps={{ 
-                    fontSize: '0.85rem', 
-                    fontWeight: isOpen ? 700 : 500,
-                    color: isOpen ? 'white' : 'rgba(255,255,255,0.8)',
-                    letterSpacing: '-0.01em'
-                  }} 
-                />
-                <Box sx={{ opacity: 0.4, display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                   <IconButton 
-                     size="small" 
-                     onClick={(e) => {
-                       e.stopPropagation();
-                       setMenuAnchor(e.currentTarget);
-                       setActiveFolder(folder);
-                     }}
-                     sx={{ 
-                       color: 'white', 
-                       p: 0.5,
-                       '&:hover': { bgcolor: 'rgba(255,255,255,0.1)' }
-                     }}
-                   >
-                     <MoreVertical size={14} />
-                   </IconButton>
-                   {isOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-                </Box>
-              </ListItemButton>
-              
-              <Collapse in={isOpen} timeout={300} unmountOnExit>
-                <Box sx={{ display: 'flex', flexDirection: 'column', borderLeft: '1px solid rgba(255,255,255,0.05)', ml: level * 2 + 2 }}>
-                    {renderTree(folder, fullPath, level + 1)}
-                </Box>
-              </Collapse>
-            </React.Fragment>
-          );
-        })}
-        
-        {sortedFiles.map(f => {
+        {filteredFiles.map(f => {
           const isSelected = selectedFile?.public_id === f.public_id;
           const isImage = f.resource_type === 'image';
           const isVideo = f.resource_type === 'video';
-          const isPptx = (f.displayName || '').toLowerCase().endsWith('.pptx');
-          const isDocx = (f.displayName || '').toLowerCase().endsWith('.docx');
+          const isPptx = (f.name || '').toLowerCase().endsWith('.pptx');
+          const isDocx = (f.name || '').toLowerCase().endsWith('.docx');
+          const isPdf = (f.name || '').toLowerCase().endsWith('.pdf');
           
           return (
             <ListItemButton 
@@ -190,37 +219,40 @@ export default function VaultSidebar({
               selected={isSelected}
               onClick={() => onSelectFile(f)}
               sx={{ 
-                pl: (level + 1) * 2 + 1,
-                borderRadius: 2, 
-                mb: 0.5,
+                borderRadius: '6px', 
+                mb: 0.25,
                 mx: 0.5,
-                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                color: isSelected ? 'white' : 'rgba(255,255,255,0.6)',
+                py: 0.8,
+                px: 1.5,
+                transition: 'all 0.15s ease-out',
+                color: isSelected ? '#f8fafc' : '#94a3b8',
                 '&.Mui-selected': { 
-                  backgroundColor: 'rgba(59, 130, 246, 0.15)',
-                  backdropFilter: 'blur(10px)',
-                  border: '1px solid rgba(59, 130, 246, 0.3)',
-                  color: 'white',
-                  '&:hover': { backgroundColor: 'rgba(59, 130, 246, 0.25)' }
+                  backgroundColor: 'rgba(59, 130, 246, 0.08)',
+                  color: '#3b82f6',
+                  '& .MuiListItemIcon-root': { color: '#3b82f6' },
+                  '&:hover': { backgroundColor: 'rgba(59, 130, 246, 0.12)' }
                 },
                 '&:hover': { 
-                    bgcolor: 'rgba(255,255,255,0.05)',
-                    color: 'white'
+                    bgcolor: 'rgba(255,255,255,0.03)',
+                    color: '#cbd5e1',
+                    transform: 'none'
                 }
               }}
             >
-              <ListItemIcon sx={{ minWidth: 32 }}>
-                {isImage ? <Image size={16} color={isSelected ? "#60a5fa" : "#94a3b8"} /> : 
-                 isVideo ? <Video size={16} color={isSelected ? "#f87171" : "#94a3b8"} /> : 
-                 isPptx ? <FileText size={16} color="#ef4444" style={{ filter: 'drop-shadow(0 0 5px rgba(239,68,68,0.3))' }} /> :
-                 isDocx ? <FileText size={16} color="#3b82f6" style={{ filter: 'drop-shadow(0 0 5px rgba(59,130,246,0.3))' }} /> :
-                 <FileText size={16} color="#94a3b8" />}
+              <ListItemIcon sx={{ minWidth: 30, color: 'inherit' }}>
+                {isImage ? <ImageIcon size={14} color="#60a5fa" /> : 
+                 isVideo ? <Film size={14} color="#f87171" /> : 
+                 isPptx ? <FileText size={14} color="#ef4444" /> :
+                 isDocx ? <FileText size={14} color="#3b82f6" /> :
+                 isPdf ? <FileText size={14} color="#f43f5e" /> :
+                 <FileText size={14} color="#94a3b8" />}
               </ListItemIcon>
+
               <ListItemText 
-                primary={f.displayName} 
+                primary={f.name} 
                 primaryTypographyProps={{ 
-                  fontWeight: isSelected ? 800 : 400,
-                  fontSize: '0.8rem',
+                  fontWeight: isSelected ? 700 : 500,
+                  fontSize: '0.75rem',
                   noWrap: true,
                   letterSpacing: '0.01em'
                 }} 
@@ -228,103 +260,20 @@ export default function VaultSidebar({
             </ListItemButton>
           )
         })}
-      </Box>
-    );
-  };
-
-  return (
-    <Box>
-      <Box sx={{ px: 2, mb: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <Typography variant="overline" sx={{ fontWeight: 800, color: 'rgba(255,255,255,0.3)', letterSpacing: 2.5, fontSize: '0.65rem' }}>
-          VAULT REPOSITORY
-        </Typography>
-      </Box>
-
-      <List dense sx={{ px: 1 }}>
-        <React.Fragment>
-            <ListItemButton 
-                onClick={() => setOpenFolders(prev => ({ ...prev, 'ROOT': !prev['ROOT'] }))}
-                sx={{ 
-                  borderRadius: 2,
-                  mb: 0.5,
-                  transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-                  '&:hover': { 
-                    bgcolor: 'rgba(255,255,255,0.08)',
-                    transform: 'translateX(4px)'
-                  }
-                }}
-            >
-                <ListItemIcon sx={{ minWidth: 32 }}>
-                    {openFolders['ROOT'] !== false ? (
-                        <FolderOpen size={18} color="#94a3b8" style={{ filter: 'drop-shadow(0 0 8px rgba(148,163,184,0.3))' }} />
-                    ) : (
-                        <Folder size={18} color="#64748b" />
-                    )}
-                </ListItemIcon>
-                <ListItemText 
-                    primary={rootName} 
-                    primaryTypographyProps={{ 
-                        fontSize: '0.9rem', 
-                        fontWeight: 900,
-                        color: 'white',
-                        letterSpacing: '0.05em'
-                    }} 
-                />
-                <Box sx={{ opacity: 0.4, display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                    <IconButton 
-                        size="small" 
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            setMenuAnchor(e.currentTarget);
-                            setActiveFolder({ path: rootName });
-                        }}
-                        sx={{ color: 'white', p: 0.5 }}
-                    >
-                        <MoreVertical size={14} />
-                    </IconButton>
-                    {openFolders['ROOT'] !== false ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-                </Box>
-            </ListItemButton>
-            <Collapse in={openFolders['ROOT'] !== false} timeout={300} unmountOnExit>
-                <Box sx={{ display: 'flex', flexDirection: 'column', borderLeft: '1px solid rgba(255,255,255,0.05)', ml: 3 }}>
-                    {renderTree(fileTree)}
-                </Box>
-            </Collapse>
-        </React.Fragment>
-
-        <Menu
-            anchorEl={menuAnchor}
-            open={Boolean(menuAnchor)}
-            onClose={() => setMenuAnchor(null)}
-            PaperProps={{
-              sx: {
-                bgcolor: 'rgba(30, 41, 59, 0.95)',
-                backdropFilter: 'blur(10px)',
-                border: '1px solid rgba(255,255,255,0.1)',
-                color: 'white',
-                minWidth: 160
-              }
-            }}
-        >
-            <MenuItem 
-              onClick={() => {
-                onUploadToFolder(activeFolder.path);
-                setMenuAnchor(null);
-              }}
-              sx={{ gap: 1.5, py: 1 }}
-            >
-                <Upload size={16} />
-                <Typography variant="body2">Upload File</Typography>
-            </MenuItem>
-        </Menu>
         
-        {files.length === 0 && (
-          <Box sx={{ textAlign: 'center', py: 8, opacity: 0.3 }}>
-            <Folder size={40} style={{ margin: '0 auto' }} />
-            <Typography variant="body2" sx={{ mt: 1 }}>No Assets found</Typography>
+        {filteredFiles.length === 0 && (
+          <Box sx={{ textAlign: 'center', py: 8, opacity: 0.2 }}>
+            <Typography variant="caption">Empty repository</Typography>
           </Box>
         )}
       </List>
+
+      {/* Footer / Settings Shortcut */}
+      <Box sx={{ p: 1.5, borderTop: '1px solid rgba(255,255,255,0.03)', display: 'flex', justifyContent: 'center' }}>
+          <Typography variant="caption" sx={{ color: '#334155', fontWeight: 600, fontSize: '0.6rem' }}>
+            BCH VAULT v2.1
+          </Typography>
+      </Box>
     </Box>
   );
 }

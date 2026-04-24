@@ -18,22 +18,23 @@ import {
   ListItemIcon,
   ListItemText,
   Stack,
-  Toolbar,
   Typography,
-  Tabs,
-  Tab,
   Dialog,
   DialogTitle,
   DialogContent,
   TextField,
   DialogActions,
   Alert,
+  Drawer,
+  Tooltip,
+  Backdrop,
   Fade,
   Collapse,
   alpha,
-  Backdrop,
   Snackbar
 } from '@mui/material';
+
+
 import {
   ChevronLeft,
   ChevronRight,
@@ -65,10 +66,9 @@ export default function Home() {
   } = useFileSystem();
 
   // --- Vault State ---
-  const [vaultPath, setVaultPath] = useState(ROOT_FOLDER);
-  const [vaultFolders, setVaultFolders] = useState([]);
   const [vaultFiles, setVaultFiles] = useState([]);
   const [isVaultLoading, setIsVaultLoading] = useState(false);
+
   const [isVaultAuth, setIsVaultAuth] = useState(false);
   const [isAuthLoading, setIsAuthLoading] = useState(false);
   const [showAuthDialog, setShowAuthDialog] = useState(false);
@@ -91,11 +91,9 @@ export default function Home() {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showControls, setShowControls] = useState(true);
   const [isUploading, setIsUploading] = useState(false);
-  const [uploadTargetPath, setUploadTargetPath] = useState(null);
-  const [showFolderDialog, setShowFolderDialog] = useState(false);
-  const [newFolderName, setNewFolderName] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
   const hideControlsTimer = useRef(null);
+
   const stageRef = useRef(null);
   const fileInputRef = useRef(null);
   const [localSyncCache, setLocalSyncCache] = useState({}); // { fileName: { secure_url, resource_type, public_id } }
@@ -151,15 +149,14 @@ export default function Home() {
   // --- Vault Effects ---
   useEffect(() => {
     if (isCloud) {
-      fetchVault(vaultPath);
+      fetchVault();
     }
-  }, [isCloud, vaultPath]);
+  }, [isCloud]);
 
-  const fetchVault = async (path) => {
+  const fetchVault = async () => {
     setIsVaultLoading(true);
     try {
-      const data = await VaultService.getVault(path);
-      setVaultFolders(data.folders);
+      const data = await VaultService.getVault(ROOT_FOLDER);
       setVaultFiles(data.files);
       setIsVaultLoading(false);
     } catch (err) {
@@ -168,6 +165,7 @@ export default function Home() {
       setIsVaultLoading(false);
     }
   };
+
 
   // --- Media Loading Logic ---
   useEffect(() => {
@@ -302,20 +300,7 @@ export default function Home() {
     }
   };
 
-  const handleCreateFolder = () => {
-    if (!newFolderName.trim()) return;
-    const newPath = `${vaultPath}/${newFolderName.trim()}`;
-    setVaultPath(newPath);
-    setNewFolderName('');
-    setShowFolderDialog(false);
-  };
 
-  const navigateBack = () => {
-    if (vaultPath === ROOT_FOLDER) return;
-    const parts = vaultPath.split('/');
-    parts.pop();
-    setVaultPath(parts.join('/'));
-  };
 
   const handleVaultAction = async (action, ...args) => {
     try {
@@ -325,14 +310,13 @@ export default function Home() {
         await VaultService.deleteAsset(...args);
         setSelectedFile(null);
       } else if (action === 'upload') {
-        const [file, specificPath] = args;
-        const targetPath = specificPath || vaultPath;
-        await VaultService.uploadFile(targetPath, file);
-        // Always refresh the folder we uploaded to
-        await fetchVault(targetPath);
-        return; // Skip the default fetchVault at the end
+        const [file] = args;
+        await VaultService.uploadFile(ROOT_FOLDER, file);
+        await fetchVault();
+        return;
       }
-      fetchVault(vaultPath);
+      fetchVault();
+
     } catch (err) {
       setError("Action failed: " + err.message);
     }
@@ -381,234 +365,107 @@ export default function Home() {
     }
   };
 
-  const handleSidebarUpload = (path) => {
-    setUploadTargetPath(path);
+  const handleSidebarUpload = () => {
+    if (!isVaultAuth) {
+      setShowAuthDialog(true);
+      return;
+    }
     fileInputRef.current?.click();
   };
 
+
+
   return (
     <Box sx={{ display: 'flex', height: '100vh', width: '100%', overflow: 'hidden' }}>
-      {/* Header */}
-      <AppBar
-        position="fixed"
-        elevation={0}
-        sx={{
-          backdropFilter: 'blur(12px)',
-          backgroundColor: 'rgba(2, 6, 23, 0.7)',
-          borderBottom: '1px solid rgba(255,255,255,0.08)',
-          zIndex: (theme) => theme.zIndex.drawer + 1,
-        }}
-      >
-        <Toolbar sx={{ gap: { xs: 1, sm: 2 }, px: { xs: 1, sm: 2 } }}>
-          <IconButton onClick={() => setIsSidebarOpen(o => !o)} sx={{ color: 'white', mr: { xs: 0, sm: 1 } }}>
-            <Menu size={24} />
+      {/* Floating Menu Toggle (Visible when sidebar is closed or on mobile) */}
+      {!isSidebarOpen && (
+        <Tooltip title="Open Navigation">
+          <IconButton
+            onClick={() => setIsSidebarOpen(true)}
+            sx={{
+              position: 'fixed',
+              top: 16,
+              left: 16,
+              zIndex: 1200,
+              bgcolor: '#020617',
+              color: '#3b82f6',
+              width: 36,
+              height: 36,
+              border: '1px solid rgba(59, 130, 246, 0.2)',
+              '&:hover': { bgcolor: '#1e293b', border: '1px solid #3b82f6' },
+              boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
+              transition: 'all 0.2s'
+            }}
+          >
+            <Menu size={18} />
           </IconButton>
-          <Box
-            sx={{
-              width: { xs: 32, sm: 38 },
-              height: { xs: 32, sm: 38 },
-              display: 'grid',
-              placeItems: 'center',
-              borderRadius: '10px',
-              background: 'linear-gradient(135deg, #3b82f6, #8b5cf6)',
-              boxShadow: '0 0 20px rgba(59,130,246,0.5)',
-              flexShrink: 0
-            }}
-          >
-            <ShieldCheck size={20} color="white" />
-          </Box>
-          <Typography variant="h6" sx={{ letterSpacing: -1, fontSize: '1.2rem', fontWeight: 900, display: { xs: 'none', md: 'block' } }}>
-            BCH VAULT
-          </Typography>
+        </Tooltip>
+      )}
 
-          <Tabs
-            value={viewMode}
-            onChange={(_, v) => setViewMode(v)}
-            variant="scrollable"
-            scrollButtons={false}
-            sx={{
-              ml: { xs: 1, md: 4 },
-              minHeight: 'auto',
-              '& .MuiTabs-indicator': { backgroundColor: '#3b82f6', height: 3, borderRadius: '3px 3px 0 0' },
-              '& .MuiTab-root': { color: '#64748b', fontWeight: 800, textTransform: 'none', minWidth: { xs: 70, sm: 100 }, fontSize: { xs: '0.8rem', sm: '0.9rem' }, py: 1.5, px: { xs: 1, sm: 2 } },
-              '& .Mui-selected': { color: '#3b82f6 !important' }
-            }}
-          >
-            <Tab icon={<Cloud size={18} />} iconPosition="start" label="Cloud" value="cloud" />
-            <Tab icon={<Smartphone size={18} />} iconPosition="start" label="Local" value="local" />
-          </Tabs>
 
-          <Box sx={{ flex: 1 }} />
 
-          {isCloud && !isVaultAuth && (
-            <Button
-              variant="contained"
-              onClick={() => setShowAuthDialog(true)}
-              size="small"
-              sx={{ borderRadius: 999, bgcolor: '#334155', '&:hover': { bgcolor: '#475569' }, minWidth: 0, p: { xs: 1, sm: '4px 16px' } }}
-            >
-              <Lock size={16} />
-              <Typography component="span" sx={{ ml: 1, display: { xs: 'none', sm: 'inline' }, fontSize: '0.875rem', fontWeight: 600 }}>Unlock Vault</Typography>
-            </Button>
-          )}
 
-          {isCloud && isVaultAuth && (
-            <Stack direction="row" spacing={1}>
-              <Button
-                variant="outlined"
-                onClick={() => setShowFolderDialog(true)}
-                size="small"
-                sx={{ borderRadius: 999, color: 'white', borderColor: 'rgba(255,255,255,0.2)', minWidth: 0, p: { xs: 1, sm: '4px 16px' } }}
-              >
-                <Folder size={16} />
-                <Typography component="span" sx={{ ml: 1, display: { xs: 'none', sm: 'inline' }, fontSize: '0.875rem', fontWeight: 600 }}>New Folder</Typography>
-              </Button>
-              <Button
-                variant="contained"
-                onClick={() => fileInputRef.current?.click()}
-                disabled={isUploading}
-                size="small"
-                sx={{ borderRadius: 999, bgcolor: '#3b82f6', minWidth: { xs: 0, sm: 140 }, p: { xs: 1, sm: '4px 16px' } }}
-              >
-                {isUploading ? <CircularProgress size={16} color="inherit" /> : <Plus size={16} />}
-                <Typography component="span" sx={{ ml: isUploading ? 0 : 1, display: { xs: 'none', sm: 'inline' }, fontSize: '0.875rem', fontWeight: 600 }}>{isUploading ? 'Uploading...' : 'Upload Asset'}</Typography>
-              </Button>
-            </Stack>
-          )}
-
-          {!isCloud && (
-            <Button
-              variant="contained"
-              onClick={() => fileInputRef.current?.click()}
-              disabled={isUploading}
-              size="small"
-              sx={{ borderRadius: 999, bgcolor: '#3b82f6', minWidth: { xs: 0, sm: 160 }, p: { xs: 1, sm: '4px 16px' } }}
-            >
-              {isUploading ? <CircularProgress size={16} color="inherit" /> : <Plus size={16} />}
-              <Typography component="span" sx={{ ml: isUploading ? 0 : 1, display: { xs: 'none', sm: 'inline' }, fontSize: '0.875rem', fontWeight: 600 }}>{isUploading ? 'Processing...' : 'Add Presentation'}</Typography>
-            </Button>
-          )}
-        </Toolbar>
-      </AppBar>
-
-      {/* Sidebar */}
-      <Box
-        component="aside"
+      {/* Sidebar Drawer */}
+      <Drawer
+        open={isSidebarOpen}
+        onClose={() => setIsSidebarOpen(false)}
+        variant="temporary"
+        PaperProps={{
+          sx: {
+            width: 260,
+            bgcolor: '#020617',
+            borderRight: '1px solid rgba(255,255,255,0.05)',
+            boxShadow: '40px 0 80px rgba(0,0,0,0.6)',
+          }
+        }}
         sx={{
-          width: isSidebarOpen ? { xs: '100%', sm: 340 } : 0,
-          opacity: isSidebarOpen ? 1 : 0,
-          flexShrink: 0,
-          position: { xs: 'absolute', sm: 'relative' },
-          zIndex: { xs: 10, sm: 1 },
-          height: '100%',
-          borderRight: isSidebarOpen ? '1px solid rgba(255,255,255,0.06)' : 'none',
-          background: 'linear-gradient(180deg, rgba(15, 23, 42, 0.4) 0%, rgba(2, 6, 23, 0.6) 100%)',
-          backdropFilter: 'blur(30px)',
-          pt: { xs: '56px', sm: '64px' },
-          display: 'flex',
-          flexDirection: 'column',
-          transition: 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)',
-          overflow: 'hidden',
-          boxShadow: isSidebarOpen ? '20px 0 50px rgba(0,0,0,0.5)' : 'none'
+          zIndex: 1300,
+          '& .MuiBackdrop-root': {
+            backgroundColor: 'rgba(2, 6, 23, 0.4)',
+            backdropFilter: 'blur(4px)'
+          }
         }}
       >
-        <Box sx={{ p: 2.25, flex: 1, overflow: 'auto' }}>
-          {isCloud ? (
-            isVaultLoading ? (
-              <Stack alignItems="center" spacing={2} sx={{ mt: 10 }}>
-                <CircularProgress size={24} />
-                <Typography variant="body2" sx={{ opacity: 0.6 }}>Syncing...</Typography>
-              </Stack>
-            ) : (
-              <VaultSidebar
-                files={vaultFiles}
-                folders={vaultFolders}
-                onSelectFile={setSelectedFile}
-                selectedFile={selectedFile}
-                onUploadToFolder={handleSidebarUpload}
-                rootName={ROOT_FOLDER}
-              />
-            )
-          ) : (
-            <Box>
-              <Typography variant="overline" sx={{ px: 1, fontWeight: 800, color: 'text.secondary' }}>Local PPTX Files</Typography>
-              {!dirHandle ? (
-                <Box sx={{ p: 2, bgcolor: 'rgba(255,255,255,0.03)', borderRadius: 3, border: '1px solid rgba(255,255,255,0.08)', mt: 1 }}>
-                  <Typography variant="body2" sx={{ mb: 2, opacity: 0.8 }}>Connect a local folder to browse presentations.</Typography>
-                  <Button fullWidth variant="outlined" onClick={connectFolder} startIcon={<Folder size={16} />}>Connect Folder</Button>
-                </Box>
-              ) : (
-                <List sx={{ mt: 1 }}>
-                  {localFiles.map(file => {
-                    const isPptx = file.name.toLowerCase().endsWith('.pptx');
-                    const isDocx = file.name.toLowerCase().endsWith('.docx');
-                    const isSelected = selectedFile?.name === file.name;
+        <VaultSidebar
+          files={vaultFiles}
+          onSelectFile={(f) => {
+            setSelectedFile(f);
+            setIsSidebarOpen(false); // Close sidebar on file selection (Professional workflow)
+          }}
+          selectedFile={selectedFile}
+          onUpload={handleSidebarUpload}
+          isLocked={!isVaultAuth}
+          isUploading={isUploading}
+          onUnlock={() => setShowAuthDialog(true)}
+          onClose={() => setIsSidebarOpen(false)}
+        />
+      </Drawer>
 
-                    return (
-                      <ListItemButton
-                        key={file.name}
-                        selected={isSelected}
-                        onClick={() => {
-                          // Check cache before selecting
-                          const cached = localSyncCache[file.name];
-                          if (cached) {
-                            setSelectedFile({ ...file, ...cached });
-                          } else {
-                            setSelectedFile(file);
-                          }
-                        }}
-                        sx={{
-                          borderRadius: 2,
-                          mb: 0.5,
-                          '&.Mui-selected': { bgcolor: 'rgba(59,130,246,0.15)' }
-                        }}
-                      >
-                        <ListItemIcon sx={{ minWidth: 36 }}>
-                          {isPptx ? (
-                            <FileText size={18} color="#ef4444" style={{ filter: 'drop-shadow(0 0 5px rgba(239,68,68,0.3))' }} />
-                          ) : isDocx ? (
-                            <FileText size={18} color="#3b82f6" style={{ filter: 'drop-shadow(0 0 5px rgba(59,130,246,0.3))' }} />
-                          ) : (
-                            <FileText size={18} color="#94a3b8" />
-                          )}
-                        </ListItemIcon>
-                        <ListItemText
-                          primary={file.name}
-                          primaryTypographyProps={{
-                            noWrap: true,
-                            fontWeight: isSelected ? 800 : 600,
-                            fontSize: 13,
-                            color: isSelected ? 'white' : 'rgba(255,255,255,0.7)'
-                          }}
-                        />
-                      </ListItemButton>
-                    );
-                  })}
-                </List>
-              )}
-            </Box>
-          )}
-        </Box>
-      </Box>
+
 
       {/* Main Area */}
-      <Box component="main" sx={{ flex: 1, pt: { xs: '56px', sm: '64px' }, minWidth: 0 }}>
-        <Box sx={{ height: '100%', p: { xs: 1.5, sm: 3 }, display: 'flex', flexDirection: 'column' }}>
-          <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: { xs: 1, sm: 2 } }}>
-            <Typography variant="body2" sx={{ color: '#64748b', fontWeight: 600, noWrap: true, flexShrink: 1 }}>
-              {isCloud ? `Vault / ${vaultPath.split('/').slice(1).join(' / ')}` : 'Local Workspace'}
+      <Box component="main" sx={{ flex: 1, pt: 0, minWidth: 0 }}>
+
+        <Box sx={{ height: '100%', p: { xs: 1, sm: 2 }, pt: { xs: 2, sm: 3 }, display: 'flex', flexDirection: 'column' }}>
+          <Stack direction="row" alignItems="center" spacing={1.5} sx={{ 
+            mb: 3, 
+            ml: isSidebarOpen ? 0 : 8, 
+            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)' 
+          }}>
+            <Box sx={{ width: 3, height: 14, bgcolor: '#3b82f6', borderRadius: 4 }} />
+            <Typography variant="body2" sx={{ 
+              color: '#64748b', 
+              fontWeight: 800, 
+              textTransform: 'uppercase',
+              letterSpacing: '0.15em',
+              fontSize: '0.6rem'
+            }}>
+              {isCloud ? 'Repository / Root' : 'Local Workspace'}
             </Typography>
-            {isCloud && vaultPath !== ROOT_FOLDER && (
-              <Button
-                size="small"
-                onClick={navigateBack}
-                sx={{ ml: 2, color: '#3b82f6', textTransform: 'none', fontWeight: 800, minWidth: 'auto', p: { xs: '4px 8px', sm: '4px 16px' } }}
-              >
-                <ChevronLeft size={16} />
-                <Typography component="span" sx={{ ml: 0.5, display: { xs: 'none', sm: 'inline' }, fontSize: '0.875rem', fontWeight: 800 }}>Back to Parent</Typography>
-              </Button>
-            )}
           </Stack>
+
+
+
 
           <Box
             ref={stageRef}
@@ -768,27 +625,7 @@ export default function Home() {
         </DialogActions>
       </Dialog>
 
-      {/* Folder Creation Dialog */}
-      <Dialog open={showFolderDialog} onClose={() => setShowFolderDialog(false)} fullWidth maxWidth="xs">
-        <DialogTitle sx={{ fontWeight: 900 }}>Create New Folder</DialogTitle>
-        <DialogContent>
-          <Typography variant="body2" sx={{ mb: 2, opacity: 0.7 }}>
-            This will create a new subfolder in <strong>{vaultPath.split('/').pop()}</strong>
-          </Typography>
-          <TextField
-            fullWidth
-            autoFocus
-            label="Folder Name"
-            value={newFolderName}
-            onChange={(e) => setNewFolderName(e.target.value)}
-            onKeyPress={(e) => e.key === 'Enter' && handleCreateFolder()}
-          />
-        </DialogContent>
-        <DialogActions sx={{ p: 2 }}>
-          <Button onClick={() => setShowFolderDialog(false)}>Cancel</Button>
-          <Button variant="contained" onClick={handleCreateFolder} sx={{ px: 3 }}>Create</Button>
-        </DialogActions>
-      </Dialog>
+
 
       <input
         type="file"
@@ -799,13 +636,12 @@ export default function Home() {
 
           setIsUploading(true);
           try {
-            // Use targeted path if provided from sidebar, otherwise fall back to global vaultPath
-            const targetPath = uploadTargetPath || vaultPath;
 
             if (isCloud) {
-              await handleVaultAction('upload', file, targetPath);
-              setSuccessMessage(`Successfully uploaded to ${targetPath.split('/').pop() || 'Files'}`);
+              await handleVaultAction('upload', file);
+              setSuccessMessage('Successfully uploaded to Root');
             } else {
+
               if (dirHandle) await saveFile(file, file.name);
               else setSelectedFile({ name: file.name, handle: { getFile: () => Promise.resolve(file) } });
             }
@@ -814,7 +650,7 @@ export default function Home() {
             setError(err.message || "Upload failed");
           } finally {
             setIsUploading(false);
-            setUploadTargetPath(null);
+
             e.target.value = '';
           }
         }}
@@ -839,8 +675,9 @@ export default function Home() {
             Uploading Asset
           </Typography>
           <Typography variant="body1" sx={{ opacity: 0.6 }}>
-            Adding to <strong>{uploadTargetPath || vaultPath}</strong>...
+            Adding to <strong>Root Repository</strong>...
           </Typography>
+
         </Box>
       </Backdrop>
 

@@ -13,7 +13,8 @@ pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjs.vers
 export default function PdfViewer({ url, onFallback, isFullscreen }) {
   const [numPages, setNumPages] = useState(null);
   const [pageNumber, setPageNumber] = useState(1);
-  const [scale, setScale] = useState(1.0);
+  const [scale, setScale] = useState(0.8);
+
   const [showControls, setShowControls] = useState(true);
   const hideControlsTimer = React.useRef(null);
 
@@ -127,7 +128,8 @@ export default function PdfViewer({ url, onFallback, isFullscreen }) {
               <Box sx={{ boxShadow: '0 20px 50px rgba(0,0,0,0.5)', backgroundColor: 'white' }}>
                 <Page
                   pageNumber={pageNumber}
-                  scale={scale}
+                  scale={isFullscreen ? scale * 1.5 : scale}
+
                   renderTextLayer={true}
                   renderAnnotationLayer={true}
                 />

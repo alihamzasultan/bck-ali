@@ -12,13 +12,13 @@ export async function POST(request) {
   try {
     const formData = await request.formData();
     const file = formData.get('file');
-    const path = formData.get('path');
+    const path = formData.get('path') || process.env.ROOT_FOLDER || "BCH-FILES";
 
-    if (!file || !path) {
-      return NextResponse.json({ error: 'Missing file or path' }, { status: 400 });
+    if (!file) {
+      return NextResponse.json({ error: 'Missing file' }, { status: 400 });
     }
 
-    const buffer = await file.arrayBuffer();
+    const buffer = Buffer.from(await file.arrayBuffer());
     const fileName = file.name;
     const ext = fileName.split('.').pop().toLowerCase();
     
@@ -26,21 +26,35 @@ export async function POST(request) {
     if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext)) resourceType = 'image';
     if (['mp4', 'mov', 'avi', 'mkv'].includes(ext)) resourceType = 'video';
 
-    const publicId = resourceType === 'raw' ? fileName : fileName.replace(/\.[^/.]+$/, "");
+    // Sanitize the filename but preserve the extension for 'raw' types
+    const nameWithoutExt = fileName.replace(/\.[^/.]+$/, "").replace(/[^a-zA-Z0-9\-_]/g, '_');
+    const sanitizedPublicId = resourceType === 'raw' 
+      ? `${nameWithoutExt}.${ext}` 
+      : nameWithoutExt;
 
-    // Use a promise to handle the stream upload if needed, 
-    // or just convert buffer to base64 for simplicity in this small app.
-    const base64File = `data:${file.type};base64,${Buffer.from(buffer).toString('base64')}`;
 
-    const res = await cloudinary.uploader.upload(base64File, {
-      folder: path,
-      public_id: publicId,
-      resource_type: resourceType
+
+    // Cloudinary upload using buffer
+    const uploadResponse = await new Promise((resolve, reject) => {
+      const uploadStream = cloudinary.uploader.upload_stream(
+        {
+          folder: path,
+          public_id: sanitizedPublicId,
+          resource_type: resourceType,
+        },
+
+        (error, result) => {
+          if (error) reject(error);
+          else resolve(result);
+        }
+      );
+      uploadStream.end(buffer);
     });
 
-    return NextResponse.json(res);
+    return NextResponse.json(uploadResponse);
   } catch (error) {
     console.error("Upload API Error:", error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
+

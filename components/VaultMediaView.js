@@ -43,7 +43,8 @@ export default function VaultMediaView({ file, isFullscreen, isSyncing, onSync }
         display: 'flex',
         flexDirection: 'column',
         p: isFullscreen ? 0 : (isDocument ? 0 : 2),
-        pt: isFullscreen ? 10 : (isDocument ? 0 : 2),
+        pt: isFullscreen ? 1 : (isDocument ? 0 : 2),
+
         width: '100%',
         height: '100%',
         minHeight: 0,
@@ -64,11 +65,14 @@ export default function VaultMediaView({ file, isFullscreen, isSyncing, onSync }
               src={secure_url}
               alt={name}
               sx={{ 
-                maxWidth: '100%', 
-                maxHeight: '100%', 
+                maxWidth: isFullscreen ? '100%' : '80%', 
+                maxHeight: isFullscreen ? '100%' : '80%', 
                 objectFit: 'contain',
-                boxShadow: '0 20px 50px rgba(0,0,0,0.5)'
+                boxShadow: isFullscreen ? 'none' : '0 20px 50px rgba(0,0,0,0.5)',
+                transition: 'all 0.3s ease'
               }}
+
+
             />
           )}
 
@@ -86,7 +90,8 @@ export default function VaultMediaView({ file, isFullscreen, isSyncing, onSync }
             <Box sx={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column' }}>
               {isPptOrDoc ? (
                 secure_url ? (
-                  <OfficePptViewer url={secure_url} isVisible={!!file} />
+                  <OfficePptViewer url={secure_url} isVisible={!!file} isFullscreen={isFullscreen} />
+
                 ) : (
                   <Stack 
                     alignItems="center" 
