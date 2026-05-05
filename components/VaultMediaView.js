@@ -33,7 +33,7 @@ export default function VaultMediaView({ file, isFullscreen, isSyncing, onSync }
         width: '100%', 
         height: '100%', 
         flex: 1,
-        overflow: isDocument ? 'auto' : 'hidden',
+        overflow: 'hidden',
         display: 'flex', 
         flexDirection: 'column'
       }}
