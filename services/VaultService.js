@@ -11,9 +11,15 @@ export const VaultService = {
     
     // Determine resource type
     let resourceType = 'raw';
-    if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'pdf', 'heic', 'tiff'].includes(ext)) {
+    const isImage = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'pdf', 'heic', 'tiff'].includes(ext);
+    const isVideo = ['mp4', 'mov', 'avi', 'mkv', 'webm'].includes(ext);
+
+    if (isImage) {
       resourceType = 'image';
-    } else if (['mp4', 'mov', 'avi', 'mkv', 'webm'].includes(ext)) {
+    } else if (isVideo) {
+      resourceType = 'video';
+    } else if (file.size > 10485760) {
+      // Fallback for large raw files (e.g. PPTX > 10MB) to bypass Cloudinary free tier 10MB limit
       resourceType = 'video';
     }
 
@@ -48,7 +54,7 @@ export const VaultService = {
     formData.append('folder', path);
     formData.append('public_id', sanitizedPublicId);
 
-    const cloudinaryUrl = `https://api.cloudinary.com/v1_1/${cloudName}/auto/upload`;
+    const cloudinaryUrl = `https://api.cloudinary.com/v1_1/${cloudName}/${resourceType}/upload`;
     const uploadResp = await fetch(cloudinaryUrl, {
       method: 'POST',
       body: formData
