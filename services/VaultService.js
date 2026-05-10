@@ -48,7 +48,7 @@ export const VaultService = {
     formData.append('folder', path);
     formData.append('public_id', sanitizedPublicId);
 
-    const cloudinaryUrl = `https://api.cloudinary.com/v1_1/${cloudName}/${resourceType}/upload`;
+    const cloudinaryUrl = `https://api.cloudinary.com/v1_1/${cloudName}/auto/upload`;
     const uploadResp = await fetch(cloudinaryUrl, {
       method: 'POST',
       body: formData
@@ -56,7 +56,8 @@ export const VaultService = {
 
     if (!uploadResp.ok) {
       const errData = await uploadResp.json();
-      throw new Error(errData.error?.message || 'Cloudinary upload failed');
+      console.error("Cloudinary Upload Error Details:", errData);
+      throw new Error(errData.error?.message || `Cloudinary upload failed: ${uploadResp.status} ${uploadResp.statusText}`);
     }
 
     return uploadResp.json();
