@@ -19,26 +19,50 @@ export async function GET(request) {
         throw new Error("Missing Cloudinary configuration in .env.local");
     }
 
-    // Use Cloudinary Search API for more reliable and up-to-date results
-    const searchResponse = await cloudinary.search
-      .expression(`folder:"${rootPath}"`)
-      .sort_by('created_at', 'desc')
-      .max_results(500)
-      .execute();
+    let files = [];
+    try {
+      // Primary: Use Cloudinary Search API for reliable and up-to-date results
+      const searchResponse = await cloudinary.search
+        .expression(`folder:${rootPath}/*`)
+        .sort_by('created_at', 'desc')
+        .max_results(500)
+        .execute();
 
-    files = searchResponse.resources.map(item => {
-      const baseName = item.public_id.split('/').pop();
-      // For images/videos, we append the format to get the "natural" filename
-      // For raw files, the public_id usually already contains the extension in our upload logic
-      const name = (item.resource_type === 'image' || item.resource_type === 'video') && item.format 
-          ? `${baseName}.${item.format}` 
-          : baseName;
+      files = searchResponse.resources.map(item => {
+        const baseName = item.public_id.split('/').pop();
+        const name = (item.resource_type === 'image' || item.resource_type === 'video') && item.format 
+            ? `${baseName}.${item.format}` 
+            : baseName;
+        
+        return {
+            ...item,
+            name: name
+        };
+      });
+    } catch (searchError) {
+      console.warn("Cloudinary Search API failed, falling back to Resources API:", searchError.message);
       
-      return {
-          ...item,
-          name: name
-      };
-    });
+      // Fallback: Manual listing if Search API is disabled on account
+      const resourceTypes = ['image', 'video', 'raw'];
+      const results = await Promise.all(resourceTypes.map(async (rtype) => {
+          try {
+              const res = await cloudinary.api.resources({
+                  resource_type: rtype,
+                  type: 'upload',
+                  prefix: rootPath + '/',
+                  max_results: 500
+              });
+              return res.resources.map(item => {
+                  const baseName = item.public_id.split('/').pop();
+                  const name = (rtype === 'image' || rtype === 'video') && item.format 
+                      ? `${baseName}.${item.format}` 
+                      : baseName;
+                  return { ...item, resource_type: rtype, name };
+              });
+          } catch (e) { return []; }
+      }));
+      files = results.flat();
+    }
     
     // Filter out internal system folders like USB-SYNC
     const filteredFiles = files.filter(f => !f.public_id.includes('/USB-SYNC/'));
