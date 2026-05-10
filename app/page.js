@@ -24,7 +24,12 @@ import {
   Card,
   CardActionArea,
   InputAdornment,
-  Chip
+  Chip,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Divider
 } from '@mui/material';
 
 
@@ -88,6 +93,8 @@ export default function Home() {
   const [showControls, setShowControls] = useState(true);
   const [isUploading, setIsUploading] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
+  const [showSizeError, setShowSizeError] = useState(false);
+  const [lastAttemptedFile, setLastAttemptedFile] = useState(null);
   const hideControlsTimer = useRef(null);
 
   const stageRef = useRef(null);
@@ -745,6 +752,19 @@ export default function Home() {
         onChange={async (e) => {
           const file = e.target.files[0];
           if (!file) return;
+
+          // 10MB Limit Check for RAW files (Non-images/videos)
+          const ext = file.name.split('.').pop().trim().toLowerCase();
+          const isImage = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'pdf', 'heic', 'tiff'].includes(ext);
+          const isVideo = ['mp4', 'mov', 'avi', 'mkv', 'webm'].includes(ext);
+          
+          if (!isImage && !isVideo && file.size > 10 * 1024 * 1024) {
+            setLastAttemptedFile({ name: file.name, size: (file.size / (1024 * 1024)).toFixed(1) });
+            setShowSizeError(true);
+            e.target.value = '';
+            return;
+          }
+
           setIsUploading(true);
           try {
             await handleVaultAction('upload', file);
@@ -799,6 +819,77 @@ export default function Home() {
           {successMessage}
         </Alert>
       </Snackbar>
+
+      {/* File Too Large Modal */}
+      <Dialog 
+        open={showSizeError} 
+        onClose={() => setShowSizeError(false)}
+        PaperProps={{
+          sx: {
+            bgcolor: '#0f172a',
+            borderRadius: 6,
+            border: '1px solid rgba(255,255,255,0.1)',
+            backgroundImage: 'none',
+            maxWidth: 450,
+            overflow: 'hidden'
+          }
+        }}
+      >
+        <Box sx={{ 
+          p: 4, 
+          textAlign: 'center', 
+          background: 'linear-gradient(135deg, rgba(239, 68, 68, 0.1) 0%, transparent 100%)' 
+        }}>
+          <Box sx={{ 
+            width: 80, height: 80, borderRadius: 4, 
+            bgcolor: 'rgba(239, 68, 68, 0.1)', 
+            display: 'grid', placeItems: 'center', 
+            mx: 'auto', mb: 3,
+            border: '1px solid rgba(239, 68, 68, 0.2)'
+          }}>
+            <ShieldCheck size={40} color="#ef4444" />
+          </Box>
+          <Typography variant="h5" sx={{ fontWeight: 900, color: 'white', mb: 1.5, letterSpacing: -0.5 }}>
+            File Too Large
+          </Typography>
+          <Typography variant="body1" sx={{ color: 'rgba(255,255,255,0.6)', mb: 3, px: 2, lineHeight: 1.6 }}>
+            The file <strong style={{ color: 'white' }}>{lastAttemptedFile?.name}</strong> is {lastAttemptedFile?.size}MB. 
+            The BCH Vault has a <strong style={{ color: '#ef4444' }}>10MB limit</strong> for presentations and documents.
+          </Typography>
+          
+          <Divider sx={{ mb: 4, borderColor: 'rgba(255,255,255,0.05)' }} />
+          
+          <Stack direction="column" spacing={1.5}>
+            <Button 
+              variant="contained" 
+              fullWidth
+              onClick={() => setShowSizeError(false)}
+              sx={{ 
+                bgcolor: '#ef4444', 
+                fontWeight: 900, 
+                borderRadius: 3, 
+                py: 1.5,
+                '&:hover': { bgcolor: '#dc2626' } 
+              }}
+            >
+              Understand
+            </Button>
+            <Button 
+              variant="text" 
+              fullWidth
+              onClick={() => setShowSizeError(false)}
+              sx={{ 
+                color: 'rgba(255,255,255,0.4)', 
+                fontWeight: 700,
+                textTransform: 'none',
+                '&:hover': { color: 'white', bgcolor: 'transparent' } 
+              }}
+            >
+              Cancel Upload
+            </Button>
+          </Stack>
+        </Box>
+      </Dialog>
     </Box>
   );
 }

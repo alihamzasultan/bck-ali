@@ -11,15 +11,9 @@ export const VaultService = {
     
     // Determine resource type
     let resourceType = 'raw';
-    const isImage = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'pdf', 'heic', 'tiff'].includes(ext);
-    const isVideo = ['mp4', 'mov', 'avi', 'mkv', 'webm'].includes(ext);
-
-    if (isImage) {
+    if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'pdf', 'heic', 'tiff'].includes(ext)) {
       resourceType = 'image';
-    } else if (isVideo) {
-      resourceType = 'video';
-    } else if (file.size > 10485760) {
-      // Fallback for large raw files (e.g. PPTX > 10MB) to bypass Cloudinary free tier 10MB limit
+    } else if (['mp4', 'mov', 'avi', 'mkv', 'webm'].includes(ext)) {
       resourceType = 'video';
     }
 
