@@ -61,11 +61,14 @@ export async function GET(request) {
     }));
     
     files = results.flat();
+    
+    // Filter out internal system folders like USB-SYNC
+    const filteredFiles = files.filter(f => !f.public_id.includes('/USB-SYNC/'));
 
     return NextResponse.json({
       path: rootPath,
       folders: [], // No folders in flat architecture
-      files: files.sort((a, b) => a.name.localeCompare(b.name))
+      files: filteredFiles.sort((a, b) => a.name.localeCompare(b.name))
     });
 
   } catch (error) {

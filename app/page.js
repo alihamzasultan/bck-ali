@@ -168,7 +168,7 @@ export default function Home() {
     if (activeFilter !== 'all') {
       result = result.filter(f => {
         if (activeFilter === 'presentation') return f.name.toLowerCase().endsWith('.pptx');
-        if (activeFilter === 'document') return f.name.toLowerCase().endsWith('.pdf') || f.name.toLowerCase().endsWith('.docx');
+        if (activeFilter === 'document') return f.name.toLowerCase().match(/\.(pdf|docx|doc|xlsx|xls|pptx|ppt)$/i);
         if (activeFilter === 'image') return f.resource_type === 'image';
         if (activeFilter === 'video') return f.resource_type === 'video';
         return true;
@@ -521,8 +521,9 @@ export default function Home() {
                     const name = f.name || '';
                     const isPptx = name.toLowerCase().endsWith('.pptx');
                     const isPdf = name.toLowerCase().endsWith('.pdf');
+                    const isDoc = name.toLowerCase().match(/\.(docx|doc|xlsx|xls|ppt)$/i);
                     const isVideo = f.resource_type === 'video';
-                    const isImage = f.resource_type === 'image';
+                    const isImage = f.resource_type === 'image' && !isPdf && !isPptx && !isDoc;
 
                     return (
                       <Grid item xs={12} sm={6} md={4} lg={3} xl={2.4} key={f.public_id} sx={{ display: 'flex' }}>
@@ -563,20 +564,30 @@ export default function Home() {
                                 <Box component="img" src={f.secure_url} sx={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'transform 0.6s cubic-bezier(0.4, 0, 0.2, 1)' }} />
                               ) : (isPdf || isPptx) ? (
                                 <>
-                                  {isCloud ? (
-                                    <Box 
-                                      component="img" 
-                                      src={f.secure_url.replace('/upload/', '/upload/w_400,h_280,c_fill,pg_1,f_jpg/').replace('.pdf', '.jpg').replace('.pptx', '.jpg')} 
-                                      onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }}
-                                      sx={{ width: '100%', height: '100%', objectFit: 'cover', position: 'absolute', inset: 0, transition: 'transform 0.6s cubic-bezier(0.4, 0, 0.2, 1)' }} 
-                                    />
-                                  ) : (
-                                    <Box sx={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                      <FileText size={48} color={isPptx ? "#ef4444" : "#f43f5e"} />
+                                  <Box sx={{ width: '100%', height: '100%', position: 'relative' }}>
+                                    {isCloud && (
+                                      <Box 
+                                        component="img" 
+                                        src={f.resource_type === 'image' 
+                                          ? f.secure_url.replace('/upload/', '/upload/w_400,h_280,c_fill,pg_1,f_jpg/') 
+                                          : f.secure_url 
+                                        } 
+                                        onError={(e) => { 
+                                          e.target.style.display = 'none'; 
+                                          const fallback = e.target.parentElement.querySelector('.fallback-icon');
+                                          if (fallback) fallback.style.display = 'flex'; 
+                                        }}
+                                        sx={{ width: '100%', height: '100%', objectFit: 'cover', position: 'absolute', inset: 0, transition: 'transform 0.6s cubic-bezier(0.4, 0, 0.2, 1)', zIndex: 2 }} 
+                                      />
+                                    )}
+                                    <Box className="fallback-icon" sx={{ 
+                                      display: isCloud ? 'none' : 'flex', 
+                                      width: '100%', height: '100%', 
+                                      alignItems: 'center', justifyContent: 'center',
+                                      position: 'absolute', inset: 0, zIndex: 1 
+                                    }}>
+                                      <FileText size={48} color={isPptx ? "#ef4444" : isPdf ? "#f43f5e" : "#94a3b8"} />
                                     </Box>
-                                  )}
-                                  <Box sx={{ display: 'none', width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center' }}>
-                                    <FileText size={48} color={isPptx ? "#ef4444" : "#f43f5e"} />
                                   </Box>
                                 </>
                               ) : isVideo ? (

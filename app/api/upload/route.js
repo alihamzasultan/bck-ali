@@ -20,15 +20,22 @@ export async function POST(request) {
 
     const buffer = Buffer.from(await file.arrayBuffer());
     const fileName = file.name;
-    const ext = fileName.split('.').pop().toLowerCase();
+    const ext = fileName.split('.').pop().trim().toLowerCase();
     
-    let resourceType = 'raw';
-    if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext)) resourceType = 'image';
-    if (['mp4', 'mov', 'avi', 'mkv'].includes(ext)) resourceType = 'video';
+    // Determine resource type - use 'auto' as a base but explicitly set for some logic
+    let resourceType = 'auto';
+    if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'pdf', 'heic', 'tiff'].includes(ext)) {
+      // We want PDFs as 'image' so we can get thumbnails
+      resourceType = 'image';
+    } else if (['mp4', 'mov', 'avi', 'mkv', 'webm'].includes(ext)) {
+      resourceType = 'video';
+    } else {
+      resourceType = 'raw';
+    }
 
     // Sanitize the filename but preserve the extension for 'raw' types
     const nameWithoutExt = fileName.replace(/\.[^/.]+$/, "").replace(/[^a-zA-Z0-9\-_]/g, '_');
-    const sanitizedPublicId = resourceType === 'raw' 
+    const sanitizedPublicId = (resourceType === 'raw' || ext === 'pdf') 
       ? `${nameWithoutExt}.${ext}` 
       : nameWithoutExt;
 
