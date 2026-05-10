@@ -29,16 +29,22 @@ export function useFileSystem() {
     if (!handle) return;
     const list = [];
     try {
+        const allowedExtensions = ['.pptx', '.pdf', '.docx', '.jpg', '.jpeg', '.png', '.webp', '.mp4', '.webm'];
         for await (const entry of handle.values()) {
-        if (entry.kind === 'file' && entry.name.toLowerCase().endsWith('.pptx')) {
-            const file = await entry.getFile();
-            list.push({
-            name: entry.name,
-            handle: entry,
-            size: file.size,
-            lastModified: file.lastModified
-            });
-        }
+          const ext = entry.name.toLowerCase().substring(entry.name.lastIndexOf('.'));
+          if (entry.kind === 'file' && allowedExtensions.includes(ext)) {
+              const file = await entry.getFile();
+              list.push({
+                name: entry.name,
+                public_id: entry.name, // Use name as ID for local files
+                handle: entry,
+                size: file.size,
+                lastModified: file.lastModified,
+                resource_type: ext.match(/\.(mp4|webm)$/) ? 'video' : 
+                               ext.match(/\.(jpg|jpeg|png|webp)$/) ? 'image' : 'raw',
+                secure_url: URL.createObjectURL(file) // Create temporary URL for preview
+              });
+          }
         }
         setFiles(list.sort((a, b) => b.lastModified - a.lastModified));
     } catch (e) {
