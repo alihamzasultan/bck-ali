@@ -1,6 +1,6 @@
 export const VaultService = {
   async getVault(path) {
-    const resp = await fetch(`/api/vault?path=${encodeURIComponent(path)}`);
+    const resp = await fetch(`/api/vault?path=${encodeURIComponent(path)}&t=${Date.now()}`);
     if (!resp.ok) throw new Error('Failed to fetch vault');
     return resp.json();
   },

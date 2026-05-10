@@ -290,7 +290,8 @@ export default function Home() {
         } else {
           if (dirHandle) await saveFile(file, file.name);
         }
-        fetchVault();
+        // Small delay to allow Cloudinary indexing to catch up
+        setTimeout(() => fetchVault(), 1500);
         return;
       }
       fetchVault();

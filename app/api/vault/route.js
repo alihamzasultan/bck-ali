@@ -19,48 +19,26 @@ export async function GET(request) {
         throw new Error("Missing Cloudinary configuration in .env.local");
     }
 
-    let files = [];
-    const resourceTypes = ['image', 'video', 'raw'];
-    
-    const results = await Promise.all(resourceTypes.map(async (rtype) => {
-        try {
-            let allFiles = [];
-            let nextCursor = null;
+    // Use Cloudinary Search API for more reliable and up-to-date results
+    const searchResponse = await cloudinary.search
+      .expression(`folder:"${rootPath}"`)
+      .sort_by('created_at', 'desc')
+      .max_results(500)
+      .execute();
 
-            do {
-                const res = await cloudinary.api.resources({
-                    resource_type: rtype,
-                    type: 'upload',
-                    prefix: rootPath + '/',
-                    max_results: 500,
-                    next_cursor: nextCursor
-                });
-                
-                const mapped = res.resources.map(item => {
-                    const baseName = item.public_id.split('/').pop();
-                    const name = (rtype === 'image' || rtype === 'video') && item.format 
-                        ? `${baseName}.${item.format}` 
-                        : baseName;
-                    
-                    return {
-                        ...item,
-                        resource_type: rtype,
-                        name: name
-                    };
-                });
-
-                
-                allFiles = allFiles.concat(mapped);
-                nextCursor = res.next_cursor;
-            } while (nextCursor);
-
-            return allFiles;
-        } catch (e) {
-            return [];
-        }
-    }));
-    
-    files = results.flat();
+    files = searchResponse.resources.map(item => {
+      const baseName = item.public_id.split('/').pop();
+      // For images/videos, we append the format to get the "natural" filename
+      // For raw files, the public_id usually already contains the extension in our upload logic
+      const name = (item.resource_type === 'image' || item.resource_type === 'video') && item.format 
+          ? `${baseName}.${item.format}` 
+          : baseName;
+      
+      return {
+          ...item,
+          name: name
+      };
+    });
     
     // Filter out internal system folders like USB-SYNC
     const filteredFiles = files.filter(f => !f.public_id.includes('/USB-SYNC/'));
@@ -68,7 +46,7 @@ export async function GET(request) {
     return NextResponse.json({
       path: rootPath,
       folders: [], // No folders in flat architecture
-      files: filteredFiles.sort((a, b) => a.name.localeCompare(b.name))
+      files: filteredFiles.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
     });
 
   } catch (error) {
