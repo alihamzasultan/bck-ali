@@ -6,6 +6,7 @@ import { useFileSystem } from '@/hooks/useFileSystem';
 import { VaultService } from '@/services/VaultService';
 import VaultMediaView from '@/components/VaultMediaView';
 import VaultActions from '@/components/VaultActions';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   Box,
   Button,
@@ -312,54 +313,114 @@ export default function Home() {
   };
 
   return (
-    <Box sx={{ display: 'flex', height: '100vh', width: '100%', overflow: 'hidden', bgcolor: '#020617' }}>
+    <Box sx={{ 
+      display: 'flex', 
+      height: '100vh', 
+      width: '100%', 
+      overflow: 'hidden', 
+      bgcolor: '#020617',
+      position: 'relative',
+      '&::before': {
+        content: '""',
+        position: 'absolute',
+        top: '-10%',
+        left: '-10%',
+        width: '40%',
+        height: '40%',
+        background: 'radial-gradient(circle, rgba(59, 130, 246, 0.08) 0%, transparent 70%)',
+        filter: 'blur(80px)',
+        zIndex: 0,
+        pointerEvents: 'none'
+      },
+      '&::after': {
+        content: '""',
+        position: 'absolute',
+        bottom: '-10%',
+        right: '-10%',
+        width: '50%',
+        height: '50%',
+        background: 'radial-gradient(circle, rgba(16, 185, 129, 0.05) 0%, transparent 70%)',
+        filter: 'blur(100px)',
+        zIndex: 0,
+        pointerEvents: 'none'
+      }
+    }}>
       {/* Main Area */}
       <Box component="main" sx={{ flex: 1, pt: 0, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
         
         {/* Header / Gallery Controls */}
         {!selectedFile && (
           <Box sx={{ p: { xs: 2, md: 4 }, pb: 0 }}>
-            <Stack direction="row" alignItems="center" justifyContent="space-between" spacing={2} sx={{ mb: 4 }}>
+            <Stack 
+              direction={{ xs: 'column', sm: 'row' }} 
+              alignItems={{ xs: 'flex-start', sm: 'center' }} 
+              justifyContent="space-between" 
+              spacing={3} 
+              sx={{ mb: 4 }}
+            >
               <Stack direction="row" alignItems="center" spacing={2}>
-                <Box sx={{ width: 48, height: 48, borderRadius: 3, bgcolor: alpha('#3b82f6', 0.1), display: 'grid', placeItems: 'center', border: '1px solid rgba(59, 130, 246, 0.2)' }}>
-                  {isCloud ? <FolderOpen size={24} color="#3b82f6" /> : <Smartphone size={24} color="#10b981" />}
+                <Box sx={{ 
+                  width: { xs: 40, md: 48 }, 
+                  height: { xs: 40, md: 48 }, 
+                  borderRadius: { xs: 2, md: 3 }, 
+                  bgcolor: alpha(isCloud ? '#3b82f6' : '#10b981', 0.1), 
+                  display: 'grid', 
+                  placeItems: 'center', 
+                  border: `1px solid ${alpha(isCloud ? '#3b82f6' : '#10b981', 0.2)}` 
+                }}>
+                  {isCloud ? <Cloud size={24} color="#3b82f6" /> : <Smartphone size={24} color="#10b981" />}
                 </Box>
                 <Box>
-                  <Typography variant="h5" sx={{ fontWeight: 900, color: 'white', letterSpacing: -0.5 }}>
+                  <Typography variant="h5" sx={{ 
+                    fontWeight: 900, color: 'white', letterSpacing: -0.8,
+                    fontSize: { xs: '1.25rem', md: '1.5rem' }
+                  }}>
                     {isCloud ? 'BCH Asset Vault' : 'USB Drive Access'}
                   </Typography>
-                  <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.4)', fontWeight: 600 }}>
+                  <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.4)', fontWeight: 600, fontSize: '0.75rem' }}>
                     {isCloud ? `${vaultFiles.length} resources in Repository / Root` : (dirHandle ? `${localFiles.length} resources detected on drive` : 'Connect an external drive to begin')}
                   </Typography>
                 </Box>
               </Stack>
 
-              <Stack direction="row" spacing={2}>
+              <Stack direction="row" spacing={1.5} sx={{ width: { xs: '100%', sm: 'auto' }, justifyContent: 'space-between' }}>
                 <Box sx={{ 
                   display: 'flex', 
-                  bgcolor: 'rgba(255,255,255,0.05)', 
+                  bgcolor: 'rgba(255,255,255,0.03)', 
                   p: 0.5, 
-                  borderRadius: 3,
-                  border: '1px solid rgba(255,255,255,0.08)'
+                  borderRadius: '14px',
+                  border: '1px solid rgba(255,255,255,0.05)',
+                  backdropFilter: 'blur(10px)',
+                  flex: { xs: 1, sm: 'none' }
                 }}>
                   <Button 
                     onClick={() => setViewMode('cloud')}
+                    startIcon={<Cloud size={14} />}
                     sx={{ 
-                      borderRadius: 2.5, px: 3, 
-                      bgcolor: isCloud ? 'rgba(59, 130, 246, 0.1)' : 'transparent',
-                      color: isCloud ? '#3b82f6' : 'rgba(255,255,255,0.4)',
-                      fontWeight: 800, fontSize: '0.75rem'
+                      borderRadius: '10px', px: { xs: 2, sm: 3 }, 
+                      bgcolor: isCloud ? 'rgba(59, 130, 246, 0.15)' : 'transparent',
+                      color: isCloud ? '#60a5fa' : 'rgba(255,255,255,0.3)',
+                      fontWeight: 800, fontSize: '0.7rem',
+                      flex: 1,
+                      transition: 'all 0.3s ease',
+                      border: isCloud ? '1px solid rgba(59, 130, 246, 0.2)' : '1px solid transparent',
+                      '&:hover': { bgcolor: isCloud ? 'rgba(59, 130, 246, 0.2)' : 'rgba(255,255,255,0.05)' }
                     }}
                   >
                     Cloud
                   </Button>
                   <Button 
                     onClick={() => setViewMode('local')}
+                    startIcon={<Smartphone size={14} />}
                     sx={{ 
-                      borderRadius: 2.5, px: 3,
-                      bgcolor: !isCloud ? 'rgba(16, 185, 129, 0.1)' : 'transparent',
-                      color: !isCloud ? '#10b981' : 'rgba(255,255,255,0.4)',
-                      fontWeight: 800, fontSize: '0.75rem'
+                      borderRadius: '10px', px: { xs: 2, sm: 3 },
+                      bgcolor: !isCloud ? 'rgba(16, 185, 129, 0.15)' : 'transparent',
+                      color: !isCloud ? '#34d399' : 'rgba(255,255,255,0.3)',
+                      fontWeight: 800, fontSize: '0.7rem',
+                      flex: 1,
+                      transition: 'all 0.3s ease',
+                      border: !isCloud ? '1px solid rgba(16, 185, 129, 0.2)' : '1px solid transparent',
+                      '&:hover': { bgcolor: !isCloud ? 'rgba(16, 185, 129, 0.2)' : 'rgba(255,255,255,0.05)' }
                     }}
                   >
                     USB
@@ -370,17 +431,20 @@ export default function Home() {
                   variant="contained"
                   onClick={handleSidebarUpload}
                   disabled={!isCloud && !dirHandle}
-                  startIcon={<Plus size={18} />}
                   sx={{ 
-                    borderRadius: 3, 
-                    px: 3, py: 1.2,
+                    borderRadius: '14px', 
+                    px: { xs: 2, sm: 3 },
                     bgcolor: isCloud ? '#3b82f6' : '#10b981',
-                    fontWeight: 800,
+                    fontWeight: 900,
+                    fontSize: '0.75rem',
+                    textTransform: 'none',
+                    minWidth: { xs: 'auto', sm: 120 },
                     boxShadow: isCloud ? '0 8px 24px rgba(59, 130, 246, 0.3)' : '0 8px 24px rgba(16, 185, 129, 0.3)',
                     '&:hover': { bgcolor: isCloud ? '#2563eb' : '#059669' }
                   }}
                 >
-                  Upload Asset
+                  <Plus size={18} style={{ marginRight: 4 }} />
+                  {window.innerWidth < 600 ? 'Add' : 'Add Asset'}
                 </Button>
               </Stack>
             </Stack>
@@ -524,114 +588,156 @@ export default function Home() {
                   </Box>
                 </Stack>
               ) : filteredFiles.length > 0 ? (
-                <Grid container spacing={2.5}>
-                  {filteredFiles.map((f) => {
-                    const name = f.name || '';
-                    const isPptx = name.toLowerCase().endsWith('.pptx');
-                    const isPdf = name.toLowerCase().endsWith('.pdf');
-                    const isDoc = name.toLowerCase().match(/\.(docx|doc|xlsx|xls|ppt)$/i);
-                    const isVideo = f.resource_type === 'video';
-                    const isImage = f.resource_type === 'image' && !isPdf && !isPptx && !isDoc;
+                <AnimatePresence mode="wait">
+                  <motion.div
+                    key={viewMode + searchQuery + activeFilter}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -20 }}
+                    transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
+                  >
+                    <Grid container spacing={3}>
+                      {filteredFiles.map((f) => {
+                        const name = f.name || '';
+                        const isPptx = name.toLowerCase().endsWith('.pptx');
+                        const isPdf = name.toLowerCase().endsWith('.pdf');
+                        const isDoc = name.toLowerCase().match(/\.(docx|doc|xlsx|xls|ppt)$/i);
+                        const isVideo = f.resource_type === 'video';
+                        const isImage = f.resource_type === 'image' && !isPdf && !isPptx && !isDoc;
+                        const fileSize = f.bytes ? (f.bytes / (1024 * 1024)).toFixed(1) + ' MB' : '';
 
-                    return (
-                      <Grid item xs={12} sm={6} md={4} lg={3} xl={2.4} key={f.public_id} sx={{ display: 'flex' }}>
-                        <Card 
-                          sx={{ 
-                            flex: 1,
-                            display: 'flex',
-                            flexDirection: 'column',
-                            bgcolor: 'rgba(15, 23, 42, 0.4)', 
-                            border: '1px solid rgba(255,255,255,0.05)',
-                            borderRadius: 4,
-                            overflow: 'hidden',
-                            transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
-                            '&:hover': {
-                              transform: 'translateY(-6px)',
-                              bgcolor: 'rgba(30, 41, 59, 0.7)',
-                              borderColor: isCloud ? 'rgba(59, 130, 246, 0.4)' : 'rgba(16, 185, 129, 0.4)',
-                              boxShadow: '0 25px 50px rgba(0,0,0,0.5)',
-                              '& img': { transform: 'scale(1.1)' }
-                            }
-                          }}
-                        >
-                          <CardActionArea onClick={() => setSelectedFile(f)} sx={{ p: 2.5, flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
-                            <Box sx={{ 
-                              mb: 2, 
-                              display: 'flex', 
-                              alignItems: 'center', 
-                              justifyContent: 'center', 
-                              height: 140, 
-                              width: '100%', 
-                              borderRadius: 3, 
-                              bgcolor: alpha(isPptx ? '#ef4444' : isPdf ? '#f43f5e' : isVideo ? '#f87171' : (isCloud ? '#3b82f6' : '#10b981'), 0.1),
-                              overflow: 'hidden',
-                              position: 'relative',
-                              zIndex: 1
-                            }}>
-                              {isImage ? (
-                                <Box component="img" src={f.secure_url} sx={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'transform 0.6s cubic-bezier(0.4, 0, 0.2, 1)' }} />
-                              ) : (isPdf || isPptx) ? (
-                                <>
-                                  <Box sx={{ width: '100%', height: '100%', position: 'relative' }}>
-                                    {isCloud && (
-                                      <Box 
-                                        component="img" 
-                                        src={f.resource_type === 'image' 
-                                          ? f.secure_url.replace('/upload/', '/upload/w_400,h_280,c_fill,pg_1,f_jpg/') 
-                                          : f.secure_url 
-                                        } 
-                                        onError={(e) => { 
-                                          e.target.style.display = 'none'; 
-                                          const fallback = e.target.parentElement.querySelector('.fallback-icon');
-                                          if (fallback) fallback.style.display = 'flex'; 
-                                        }}
-                                        sx={{ width: '100%', height: '100%', objectFit: 'cover', position: 'absolute', inset: 0, transition: 'transform 0.6s cubic-bezier(0.4, 0, 0.2, 1)', zIndex: 2 }} 
-                                      />
-                                    )}
-                                    <Box className="fallback-icon" sx={{ 
-                                      display: isCloud ? 'none' : 'flex', 
-                                      width: '100%', height: '100%', 
-                                      alignItems: 'center', justifyContent: 'center',
-                                      position: 'absolute', inset: 0, zIndex: 1 
-                                    }}>
-                                      <FileText size={48} color={isPptx ? "#ef4444" : isPdf ? "#f43f5e" : "#94a3b8"} />
-                                    </Box>
-                                  </Box>
-                                </>
-                              ) : isVideo ? (
-                                <Film size={48} color="#f87171" />
-                              ) : (
-                                <FileText size={48} color="#94a3b8" />
-                              )}
-                            </Box>
-                            <Box sx={{ flex: 1, width: '100%' }}>
-                              <Typography 
-                                variant="body2" 
-                                sx={{ 
-                                  color: 'white', 
-                                  fontWeight: 800, 
-                                  mb: 0.5,
-                                  display: '-webkit-box',
-                                  WebkitLineClamp: 2,
-                                  WebkitBoxOrient: 'vertical',
+                        return (
+                          <Grid item xs={12} sm={6} md={4} lg={3} xl={2.4} key={f.public_id} sx={{ display: 'flex' }}>
+                            <Card 
+                              sx={{ 
+                                flex: 1,
+                                display: 'flex',
+                                flexDirection: 'column',
+                                bgcolor: 'rgba(15, 23, 42, 0.3)', 
+                                border: '1px solid rgba(255,255,255,0.04)',
+                                borderRadius: '24px',
+                                overflow: 'hidden',
+                                position: 'relative',
+                                transition: 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)',
+                                backdropFilter: 'blur(12px)',
+                                '&:hover': {
+                                  transform: 'translateY(-10px) scale(1.02)',
+                                  bgcolor: 'rgba(30, 41, 59, 0.5)',
+                                  borderColor: isCloud ? 'rgba(59, 130, 246, 0.3)' : 'rgba(16, 185, 129, 0.3)',
+                                  boxShadow: isCloud ? '0 30px 60px -12px rgba(59, 130, 246, 0.2)' : '0 30px 60px -12px rgba(16, 185, 129, 0.2)',
+                                  '& .media-preview': { transform: 'scale(1.1)' },
+                                  '& .overlay-info': { opacity: 1, transform: 'translateY(0)' }
+                                }
+                              }}
+                            >
+                              <CardActionArea onClick={() => setSelectedFile(f)} sx={{ p: 2, flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+                                <Box sx={{ 
+                                  mb: 2.5, 
+                                  display: 'flex', 
+                                  alignItems: 'center', 
+                                  justifyContent: 'center', 
+                                  height: 160, 
+                                  width: '100%', 
+                                  borderRadius: '18px', 
+                                  bgcolor: alpha(isPptx ? '#ef4444' : isPdf ? '#f43f5e' : isVideo ? '#f87171' : (isCloud ? '#3b82f6' : '#10b981'), 0.05),
                                   overflow: 'hidden',
-                                  textOverflow: 'ellipsis',
-                                  lineHeight: 1.4,
-                                  minHeight: '2.8em'
-                                }}
-                              >
-                                {name}
-                              </Typography>
-                            </Box>
-                            <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.3)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>
-                              {isPptx ? 'Presentation' : isPdf ? 'PDF Document' : (f.resource_type === 'image' ? 'Image' : (f.resource_type === 'video' ? 'Video' : 'Asset'))}
-                            </Typography>
-                          </CardActionArea>
-                        </Card>
-                      </Grid>
-                    );
-                  })}
-                </Grid>
+                                  position: 'relative',
+                                  zIndex: 1,
+                                  border: '1px solid rgba(255,255,255,0.03)'
+                                }}>
+                                  {isImage ? (
+                                    <Box component="img" src={f.secure_url} className="media-preview" sx={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'transform 0.8s cubic-bezier(0.4, 0, 0.2, 1)' }} />
+                                  ) : (isPdf || isPptx) ? (
+                                    <>
+                                      <Box sx={{ width: '100%', height: '100%', position: 'relative' }}>
+                                        {isCloud && (
+                                          <Box 
+                                            component="img" 
+                                            className="media-preview"
+                                            src={f.resource_type === 'image' 
+                                              ? f.secure_url.replace('/upload/', '/upload/w_500,h_350,c_fill,pg_1,f_auto,q_auto/') 
+                                              : f.secure_url 
+                                            } 
+                                            onError={(e) => { 
+                                              e.target.style.display = 'none'; 
+                                              const fallback = e.target.parentElement.querySelector('.fallback-icon');
+                                              if (fallback) fallback.style.display = 'flex'; 
+                                            }}
+                                            sx={{ width: '100%', height: '100%', objectFit: 'cover', position: 'absolute', inset: 0, transition: 'transform 0.8s cubic-bezier(0.4, 0, 0.2, 1)', zIndex: 2 }} 
+                                          />
+                                        )}
+                                        <Box className="fallback-icon" sx={{ 
+                                          display: isCloud ? 'none' : 'flex', 
+                                          width: '100%', height: '100%', 
+                                          alignItems: 'center', justifyContent: 'center',
+                                          position: 'absolute', inset: 0, zIndex: 1,
+                                          background: `linear-gradient(135deg, ${alpha(isPptx ? '#ef4444' : '#3b82f6', 0.1)} 0%, transparent 100%)`
+                                        }}>
+                                          <FileText size={56} color={isPptx ? "#ef4444" : isPdf ? "#f43f5e" : "#3b82f6"} strokeWidth={1.5} />
+                                        </Box>
+                                      </Box>
+                                    </>
+                                  ) : isVideo ? (
+                                    <Box sx={{ width: '100%', height: '100%', display: 'grid', placeItems: 'center', background: 'linear-gradient(135deg, rgba(248, 113, 113, 0.1) 0%, transparent 100%)' }}>
+                                      <Film size={56} color="#f87171" strokeWidth={1.5} />
+                                    </Box>
+                                  ) : (
+                                    <Box sx={{ width: '100%', height: '100%', display: 'grid', placeItems: 'center', background: 'linear-gradient(135deg, rgba(148, 163, 184, 0.1) 0%, transparent 100%)' }}>
+                                      <FileText size={56} color="#94a3b8" strokeWidth={1.5} />
+                                    </Box>
+                                  )}
+                                  
+                                  {/* Format Badge */}
+                                  <Box sx={{ 
+                                    position: 'absolute', bottom: 12, right: 12, zIndex: 3,
+                                    bgcolor: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)',
+                                    px: 1.2, py: 0.4, borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)'
+                                  }}>
+                                    <Typography variant="caption" sx={{ fontWeight: 900, color: 'white', textTransform: 'uppercase', fontSize: '0.65rem' }}>
+                                      {name.split('.').pop()}
+                                    </Typography>
+                                  </Box>
+                                </Box>
+
+                                <Box sx={{ flex: 1, width: '100%', px: 0.5 }}>
+                                  <Typography 
+                                    variant="body2" 
+                                    sx={{ 
+                                      color: 'white', 
+                                      fontWeight: 800, 
+                                      mb: 1,
+                                      display: '-webkit-box',
+                                      WebkitLineClamp: 2,
+                                      WebkitBoxOrient: 'vertical',
+                                      overflow: 'hidden',
+                                      textOverflow: 'ellipsis',
+                                      lineHeight: 1.4,
+                                      minHeight: '2.8em',
+                                      letterSpacing: -0.2
+                                    }}
+                                  >
+                                    {name}
+                                  </Typography>
+                                  
+                                  <Stack direction="row" alignItems="center" justifyContent="space-between">
+                                    <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.3)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, fontSize: '0.65rem' }}>
+                                      {isPptx ? 'Presentation' : isPdf ? 'PDF Document' : (f.resource_type === 'image' ? 'Image' : (f.resource_type === 'video' ? 'Video' : 'Asset'))}
+                                    </Typography>
+                                    {fileSize && (
+                                      <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.2)', fontWeight: 600, fontSize: '0.65rem' }}>
+                                        {fileSize}
+                                      </Typography>
+                                    )}
+                                  </Stack>
+                                </Box>
+                              </CardActionArea>
+                            </Card>
+                          </Grid>
+                        );
+                      })}
+                    </Grid>
+                  </motion.div>
+                </AnimatePresence>
               ) : (
                 <Stack alignItems="center" justifyContent="center" sx={{ height: '40vh', opacity: 0.3 }}>
                   <Cloud size={64} />
